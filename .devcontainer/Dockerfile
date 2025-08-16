@@ -48,7 +48,7 @@ RUN groupadd --gid $USER_GID vscode \
 	&& usermod -a -G sudo vscode \
 	&& echo "vscode ALL=(ALL) NOPASSWD: ALL" > /etc/sudoers.d/vscode
 
-RUN ln -s /workspace/release $WP_PATH
+RUN ln -s /workspace/heartbeat $WP_PATH
 
 RUN chown -R vscode:www-data /var/www/html
 
