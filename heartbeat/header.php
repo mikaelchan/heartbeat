@@ -1,64 +1,81 @@
-<?php
-if (!defined('ABSPATH')) {
-    exit; // Exit if accessed directly
-}
-header('X-Frame-Options: SAMEORIGIN');
-?>
+<!DOCTYPE html>
 <html <?php language_attributes(); ?>>
-<meta charset="<?php bloginfo('charset'); ?>">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<link rel="profile" href="https://gmpg.org/xfn/11">
-
-<?php wp_head(); ?>
+<head>
+    <meta charset="<?php bloginfo('charset'); ?>">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title><?php wp_title('|', true, 'right'); ?><?php bloginfo('name'); ?></title>
+    <?php wp_head(); ?>
 </head>
-
 <body <?php body_class(); ?>>
-    <?php wp_body_open(); ?>
-    <header class="site-header no-select" role="banner">
-        <?php if (false): ?>
-            <div class="site-branding">
-                <a href="<?= esc_url(home_url('/')); ?>">
-                    <div class="site-title-logo">
-                        <img alt="<?= esc_attr(get_bloginfo('name')); ?>"
-                            src="<?= esc_url(get_theme_mod('custom_logo')); ?>"
-                            width="auto" height="auto"
-                            loading="eager"
-                            decoding="async"
-                            fetchpriority="high">
-                    </div>
-                    <div class="site-title">
-                        <?= esc_html(get_bloginfo('name')); ?>
-                    </div>
-                </a>
-            </div>
-        <?php endif; ?>
-        <div class="nav-search-wrapper">
-            <!-- Nav menu -->
-            <nav>
-                <?php
-                wp_nav_menu([
-                    'depth' => 2,
-                    'theme_location' => 'primary',
-                    'container' => false
-                ]);
-                ?>
+
+<header class="site-header">
+    <div class="container">
+        <div class="header-content">
+            <a href="<?php echo home_url(); ?>" class="logo">💖 Heartbeat</a>
+            
+            <nav class="main-nav">
+                <ul>
+                    <li><a href="<?php echo home_url(); ?>" <?php if(is_home()) echo 'class="active"'; ?>>首页</a></li>
+                    <li><a href="<?php echo home_url('/photo-gallery'); ?>" <?php if(is_page('photo-gallery')) echo 'class="active"'; ?>>合照集</a></li>
+                    <li><a href="<?php echo home_url('/future-plans'); ?>" <?php if(is_page('future-plans')) echo 'class="active"'; ?>>未来计划</a></li>
+                    <li><a href="<?php echo home_url('/whisper'); ?>" <?php if(is_page('whisper')) echo 'class="active"'; ?>>悄悄话</a></li>
+                </ul>
             </nav>
-
-            <!-- Search and background switch -->
-            <div class="nav-search-divider"></div>
-
-            <div class="searchbox js-toggle-search">
-                <i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i>
-                <span class="screen-reader-text">
-                    <?php esc_html_e('Search', 'heartbeat'); ?>
-                </span>
+            
+            <div class="search-bar">
+                <form role="search" method="get" action="<?php echo home_url('/'); ?>">
+                    <input type="search" placeholder="搜索回忆..." value="<?php echo get_search_query(); ?>" name="s" />
+                    <button type="submit">🔍</button>
+                </form>
             </div>
         </div>
+    </div>
+</header>
 
-        <!-- User Menu Section -->
-        <div class="user-menu-wrapper">
-            <?php header_user_menu(); ?>
-        </div>
+<style>
+.search-bar {
+    position: relative;
+}
 
+.search-bar input {
+    padding: 8px 40px 8px 15px;
+    border: none;
+    border-radius: 20px;
+    background: rgba(255,255,255,0.1);
+    color: white;
+    width: 200px;
+    transition: all 0.3s ease;
+}
 
-    </header>
+.search-bar input:focus {
+    outline: none;
+    background: rgba(255,255,255,0.2);
+    width: 250px;
+}
+
+.search-bar input::placeholder {
+    color: rgba(255,255,255,0.7);
+}
+
+.search-bar button {
+    position: absolute;
+    right: 5px;
+    top: 50%;
+    transform: translateY(-50%);
+    background: none;
+    border: none;
+    color: white;
+    cursor: pointer;
+    padding: 5px;
+}
+
+@media (max-width: 768px) {
+    .search-bar {
+        margin-top: 1rem;
+    }
+    
+    .search-bar input {
+        width: 100%;
+    }
+}
+</style>
