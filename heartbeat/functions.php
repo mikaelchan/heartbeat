@@ -359,20 +359,4 @@ function send_whisper_handler() {
 }
 add_action('wp_ajax_send_whisper', 'send_whisper_handler');
 add_action('wp_ajax_nopriv_send_whisper', 'send_whisper_handler');
-
-// Custom post types for better organization
-function heartbeat_custom_post_types() {
-    // Photo Gallery Post Type
-    register_post_type('photo_memory', array(
-        'labels' => array(
-            'name' => '照片回忆',
-            'singular_name' => '照片回忆'
-        ),
-        'public' => true,
-        'has_archive' => true,
-        'supports' => array('title', 'editor', 'thumbnail'),
-        'menu_icon' => 'dashicons-camera'
-    ));
-}
-add_action('init', 'heartbeat_custom_post_types');
 ?>

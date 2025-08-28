@@ -278,6 +278,8 @@
 </style>
 
 <script>
+const heartbeatUploadNonce = '<?php echo wp_create_nonce("heartbeat_upload"); ?>';
+
 // Photo gallery functionality
 document.addEventListener('DOMContentLoaded', function() {
     // Filter functionality
@@ -361,21 +363,55 @@ function uploadPhoto() {
 // Handle photo upload form
 document.getElementById('upload-form').addEventListener('submit', function(e) {
     e.preventDefault();
-    
-    const formData = new FormData();
+
     const fileInput = document.getElementById('photo-file');
-    const caption = document.getElementById('photo-caption').value;
-    const category = document.getElementById('photo-category').value;
-    const date = document.getElementById('photo-date').value;
-    
+    const caption = document.getElementById('photo-caption').value || '';
+    const category = document.getElementById('photo-category').value || '';
+    const date = document.getElementById('photo-date').value || '';
+
     if (fileInput.files.length === 0) {
         alert('请选择至少一张照片');
         return;
     }
-    
-    // Here you would typically upload to server
-    // For now, we'll just show a success message
-    alert('照片上传成功！');
+
+    const formData = new FormData();
+
+    // Support multiple files (field name photos[])
+    for (let i = 0; i < fileInput.files.length; i++) {
+        formData.append('photos[]', fileInput.files[i]);
+    }
+
+    // Append metadata and WP AJAX action + nonce
+    formData.append('caption', caption);
+    formData.append('category', category);
+    formData.append('date', date);
+    formData.append('action', 'heartbeat_upload_photo');
+    formData.append('security', heartbeatUploadNonce);
+
+    fetch('<?php echo admin_url('admin-ajax.php'); ?>', {
+        method: 'POST',
+        body: formData,
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert('照片上传成功！');
+            // If server returned HTML for the new photos, prepend to grid
+            if (data.data && data.data.html) {
+                document.getElementById('photo-grid').insertAdjacentHTML('afterbegin', data.data.html);
+                // re-run any item click bindings if needed (simple approach: reload)
+                // location.reload();
+            }
+        } else {
+            const msg = (data.data && typeof data.data === 'string') ? data.data : '照片上传失败，请重试';
+            alert(msg);
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('照片上传失败，请重试');
+    });
+
     document.getElementById('upload-modal').style.display = 'none';
     this.reset();
 });
