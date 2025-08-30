@@ -359,4 +359,111 @@ function send_whisper_handler() {
 }
 add_action('wp_ajax_send_whisper', 'send_whisper_handler');
 add_action('wp_ajax_nopriv_send_whisper', 'send_whisper_handler');
+
+// AJAX upload handler for heartbeat gallery
+function heartbeat_handle_ajax_upload() {
+    // Verify nonce
+    if ( empty($_POST['security']) || ! wp_verify_nonce( sanitize_text_field($_POST['security']), 'heartbeat_upload' ) ) {
+        wp_send_json_error( '安全验证失败', 400 );
+    }
+
+    if ( empty($_FILES) ) {
+        wp_send_json_error( '没有接收到文件', 400 );
+    }
+
+    // Require WP media functions
+    require_once( ABSPATH . 'wp-admin/includes/file.php' );
+    require_once( ABSPATH . 'wp-admin/includes/image.php' );
+    require_once( ABSPATH . 'wp-admin/includes/media.php' );
+
+    global $wpdb;
+    $table = $wpdb->prefix . 'heartbeat_photos';
+
+    // Create table if not exists
+    $charset_collate = $wpdb->get_charset_collate();
+    $sql = "CREATE TABLE IF NOT EXISTS {$table} (
+        id BIGINT(20) UNSIGNED NOT NULL AUTO_INCREMENT,
+        photo_url VARCHAR(255) NOT NULL,
+        caption TEXT,
+        category VARCHAR(50),
+        photo_date DATE,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        PRIMARY KEY  (id)
+    ) {$charset_collate};";
+    $wpdb->query($sql);
+
+    $captions = isset($_POST['caption']) ? sanitize_text_field($_POST['caption']) : '';
+    $category = isset($_POST['category']) ? sanitize_text_field($_POST['category']) : '';
+    $date = isset($_POST['date']) ? sanitize_text_field($_POST['date']) : current_time('Y-m-d');
+
+    $uploaded_html = '';
+
+    // Normalize file input: expect 'photos' as an array (photos[])
+    if ( isset($_FILES['photos']) && is_array($_FILES['photos']['name']) ) {
+        $count = count($_FILES['photos']['name']);
+        for ($i = 0; $i < $count; $i++) {
+            if ( $_FILES['photos']['error'][$i] !== UPLOAD_ERR_OK ) {
+                continue;
+            }
+
+            $file = array(
+                'name'     => $_FILES['photos']['name'][$i],
+                'type'     => $_FILES['photos']['type'][$i],
+                'tmp_name' => $_FILES['photos']['tmp_name'][$i],
+                'error'    => $_FILES['photos']['error'][$i],
+                'size'     => $_FILES['photos']['size'][$i],
+            );
+
+            $upload = wp_handle_upload( $file, array( 'test_form' => false ) );
+            if ( isset($upload['error']) ) {
+                continue;
+            }
+
+            $filetype = wp_check_filetype( $upload['file'], null );
+            $attachment = array(
+                'post_mime_type' => $filetype['type'],
+                'post_title'     => sanitize_file_name( $file['name'] ),
+                'post_content'   => '',
+                'post_status'    => 'inherit'
+            );
+
+            $attach_id = wp_insert_attachment( $attachment, $upload['file'] );
+            if ( ! is_wp_error( $attach_id ) ) {
+                $attach_data = wp_generate_attachment_metadata( $attach_id, $upload['file'] );
+                wp_update_attachment_metadata( $attach_id, $attach_data );
+                $url = wp_get_attachment_url( $attach_id );
+
+                // Insert into custom table
+                $wpdb->insert(
+                    $table,
+                    array(
+                        'photo_url'  => $url,
+                        'caption'    => $captions,
+                        'category'   => $category,
+                        'photo_date' => $date,
+                    ),
+                    array( '%s', '%s', '%s', '%s' )
+                );
+
+                $formatted_date = date_i18n( 'Y年m月d日', strtotime( $date ) );
+                $html = "<div class='photo-item' data-category='" . esc_attr( $category ) . "'>";
+                $html .= "<img src='" . esc_url( $url ) . "' alt='" . esc_attr( $captions ) . "' />";
+                $html .= "<div class='photo-info'><div class='photo-date'>" . esc_html( $formatted_date ) . "</div><div class='photo-caption'>" . esc_html( $captions ) . "</div></div>";
+                $html .= "</div>";
+
+                $uploaded_html .= $html;
+            }
+        }
+    } else {
+        wp_send_json_error( '未识别的文件输入', 400 );
+    }
+
+    if ( empty( $uploaded_html ) ) {
+        wp_send_json_error( '文件上传失败', 400 );
+    }
+
+    wp_send_json_success( array( 'html' => $uploaded_html ) );
+}
+add_action( 'wp_ajax_heartbeat_upload_photo', 'heartbeat_handle_ajax_upload' );
+add_action( 'wp_ajax_nopriv_heartbeat_upload_photo', 'heartbeat_handle_ajax_upload' );
 ?>

@@ -175,44 +175,6 @@
     text-align: center;
 }
 
-/* Modal Styles */
-.modal {
-    display: none;
-    position: fixed;
-    z-index: 2000;
-    left: 0;
-    top: 0;
-    width: 100%;
-    height: 100%;
-    background-color: rgba(0,0,0,0.8);
-    backdrop-filter: blur(5px);
-}
-
-.modal-content {
-    background-color: white;
-    margin: 5% auto;
-    padding: 2rem;
-    border-radius: 20px;
-    width: 90%;
-    max-width: 800px;
-    position: relative;
-    max-height: 90vh;
-    overflow-y: auto;
-}
-
-.close {
-    position: absolute;
-    right: 1rem;
-    top: 1rem;
-    font-size: 2rem;
-    cursor: pointer;
-    color: #666;
-}
-
-.close:hover {
-    color: var(--primary-color);
-}
-
 #modal-image {
     width: 100%;
     max-height: 500px;
@@ -268,11 +230,6 @@
     
     .search-photos input {
         width: 100%;
-    }
-    
-    .modal-content {
-        margin: 10% auto;
-        padding: 1.5rem;
     }
 }
 </style>
