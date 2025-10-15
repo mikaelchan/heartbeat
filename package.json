@@ -1,0 +1,18 @@
+{
+  "name": "heartbeat",
+  "private": true,
+  "version": "0.1.0",
+  "description": "A romantic relationship diary built with Vue 3 and Express.",
+  "workspaces": [
+    "client",
+    "server"
+  ],
+  "scripts": {
+    "dev": "concurrently \"npm run dev --prefix server\" \"npm run dev --prefix client\"",
+    "build": "npm run build --prefix client && npm run build --prefix server",
+    "test": "npm run lint --prefix client && npm run lint --prefix server && npm run typecheck --prefix server"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  }
+}
