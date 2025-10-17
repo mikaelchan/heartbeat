@@ -1,25 +1,29 @@
 import type { Request, Response } from 'express';
+import type { Prisma, User } from '@prisma/client';
 import bcrypt from 'bcryptjs';
 import crypto from 'crypto';
 import jwt, { type Secret, type SignOptions } from 'jsonwebtoken';
-import mongoose from 'mongoose';
-import UserModel, { type UserDocument } from '../models/user.js';
 import env from '../config/env.js';
-import RelationshipModel from '../models/relationship.js';
-import MemoryModel from '../models/memory.js';
-import PlanModel from '../models/plan.js';
-import BucketItemModel from '../models/bucket-item.js';
-import MessageModel from '../models/message.js';
+import prisma from '../lib/prisma.js';
 import type { AuthenticatedRequest } from '../middleware/auth.middleware.js';
 
 const SALT_ROUNDS = 10;
 
-type Gender = UserDocument['gender'];
+type Gender = 'male' | 'female' | 'other';
 
-const createToken = (user: UserDocument) => {
+interface SerializedUser {
+  id: string;
+  username: string;
+  gender: Gender;
+  partnerId: string | null;
+  pairingCode: string | null;
+  relationshipConfirmedAt: string | null;
+}
+
+const createToken = (user: SerializedUser) => {
   const secret = env.jwtSecret as Secret;
   const options: SignOptions = { expiresIn: env.jwtExpiresIn as SignOptions['expiresIn'] };
-  return jwt.sign({ id: user._id.toString(), username: user.username, gender: user.gender }, secret, options);
+  return jwt.sign({ id: user.id, username: user.username, gender: user.gender }, secret, options);
 };
 
 const buildPartnerPlaceholder = (gender: Gender) => {
@@ -34,32 +38,29 @@ const buildPartnerPlaceholder = (gender: Gender) => {
 };
 
 const seedDefaultData = async (
-  user: UserDocument,
+  user: User,
   options: { partnerName?: string; startedOn: Date },
-  session: mongoose.ClientSession
+  tx: Prisma.TransactionClient
 ) => {
-  const partnerName = options.partnerName ?? buildPartnerPlaceholder(user.gender);
-  const [relationship] = await RelationshipModel.create(
-    [
-      {
-        userOne: user._id,
-        userTwo: null,
-        coupleNames: [user.username, partnerName],
-        startedOn: options.startedOn,
-        milestones: [
-          { label: `${user.username} 与 ${partnerName} 的第一次牵手`, date: new Date('2021-07-03T00:00:00.000Z') },
-          { label: '第一次旅行', date: new Date('2022-05-20T00:00:00.000Z') },
-          { label: '我们的小家', date: new Date('2023-09-09T00:00:00.000Z') }
-        ]
-      }
-    ],
-    { session }
-  );
+  const partnerName = options.partnerName ?? buildPartnerPlaceholder((user.gender as Gender) ?? 'other');
+  const relationship = await tx.relationship.create({
+    data: {
+      userOneId: user.id,
+      userTwoId: null,
+      coupleNames: [user.username, partnerName],
+      startedOn: options.startedOn,
+      milestones: [
+        { label: `${user.username} 与 ${partnerName} 的第一次牵手`, date: new Date('2021-07-03T00:00:00.000Z').toISOString() },
+        { label: '第一次旅行', date: new Date('2022-05-20T00:00:00.000Z').toISOString() },
+        { label: '我们的小家', date: new Date('2023-09-09T00:00:00.000Z').toISOString() }
+      ]
+    }
+  });
 
-  await MemoryModel.insertMany(
-    [
+  await tx.memory.createMany({
+    data: [
       {
-        relationship: relationship._id,
+        relationshipId: relationship.id,
         title: '日落海边的约定',
         description: `${user.username} 和 ${partnerName} 一起看海的日落，偷偷约定每年都要来一次。`,
         photoUrl:
@@ -68,7 +69,7 @@ const seedDefaultData = async (
         happenedOn: new Date('2022-10-02T10:00:00.000Z')
       },
       {
-        relationship: relationship._id,
+        relationshipId: relationship.id,
         title: '雪中的拥抱',
         description: `${user.username} 把 ${partnerName} 揽在怀里，看漫天雪花。`,
         photoUrl:
@@ -76,14 +77,13 @@ const seedDefaultData = async (
         location: { lat: 41.8057, lng: 123.4315, placeName: '沈阳·棋盘山' },
         happenedOn: new Date('2023-01-15T08:00:00.000Z')
       }
-    ],
-    { session }
-  );
+    ]
+  });
 
-  await PlanModel.insertMany(
-    [
+  await tx.plan.createMany({
+    data: [
       {
-        relationship: relationship._id,
+        relationshipId: relationship.id,
         title: '一起去看极光',
         description: `${user.username} 想牵着 ${partnerName} 在极光下跳舞。`,
         scheduledOn: new Date('2024-12-15T18:00:00.000Z'),
@@ -93,59 +93,58 @@ const seedDefaultData = async (
         status: 'upcoming'
       },
       {
-        relationship: relationship._id,
+        relationshipId: relationship.id,
         title: '拍一组情侣写真',
         description: `${user.username} 想把这一年的故事做成一本相册送给 ${partnerName}。`,
         scheduledOn: new Date('2024-05-20T09:00:00.000Z'),
         attachments: [],
         status: 'in-progress'
       }
-    ],
-    { session }
-  );
+    ]
+  });
 
-  await BucketItemModel.insertMany(
-    Array.from({ length: 12 }, (_, index) => ({
-      relationship: relationship._id,
-      order: index + 1,
+  await tx.bucketItem.createMany({
+    data: Array.from({ length: 12 }, (_, index) => ({
+      relationshipId: relationship.id,
+      position: index + 1,
       title: `${user.username} 和 ${partnerName} 的第 ${index + 1} 件小事`,
       completed: index < 3
-    })),
-    { session }
-  );
+    }))
+  });
 
-  await MessageModel.insertMany(
-    [
+  await tx.message.createMany({
+    data: [
       {
-        relationship: relationship._id,
+        relationshipId: relationship.id,
         author: 'me',
         content: `${user.username} 记录下今天的心动瞬间，期待与 ${partnerName} 的明天。`
       },
       {
-        relationship: relationship._id,
+        relationshipId: relationship.id,
         author: 'partner',
         content: `${partnerName} 对 ${user.username} 说：谢谢你一直把我放在心上。`
       }
-    ],
-    { session }
-  );
+    ]
+  });
 };
 
 const generatePairingCode = async (): Promise<string> => {
   let code: string;
   do {
     code = crypto.randomInt(0, 1_000_000).toString().padStart(6, '0');
-  } while (await UserModel.exists({ pairingCode: code }));
+  } while (await prisma.user.findUnique({ where: { pairingCode: code } }));
   return code;
 };
 
-const serializeUser = (user: UserDocument) => ({
-  id: user._id.toString(),
+const serializeUser = (user: User): SerializedUser => ({
+  id: user.id,
   username: user.username,
-  gender: user.gender,
-  partnerId: user.partner ? user.partner.toString() : null,
+  gender: (user.gender as Gender) ?? 'other',
+  partnerId: user.partnerId ?? null,
   pairingCode: user.pairingCode ?? null,
-  relationshipConfirmedAt: user.relationshipConfirmedAt ? user.relationshipConfirmedAt.toISOString() : null
+  relationshipConfirmedAt: user.relationshipConfirmedAt
+    ? user.relationshipConfirmedAt.toISOString()
+    : null
 });
 
 type PairingMode = 'create' | 'join';
@@ -182,7 +181,7 @@ export const register = async (req: Request, res: Response) => {
     return res.status(400).json({ message: '请输入有效的 6 位配对码。' });
   }
 
-  const existing = await UserModel.findOne({ username: normalizedUsername });
+  const existing = await prisma.user.findUnique({ where: { username: normalizedUsername } });
   if (existing) {
     return res.status(409).json({ message: '该用户名已被使用。' });
   }
@@ -191,7 +190,7 @@ export const register = async (req: Request, res: Response) => {
   const startDateFromBody = relationshipConfirmedAt ? new Date(relationshipConfirmedAt) : new Date();
   const isStartDateValid = !Number.isNaN(startDateFromBody.getTime());
 
-  let partner: UserDocument | null = null;
+  let partner: User | null = null;
   let relationshipStart = new Date();
   let pairingCodeToAssign: string | null = null;
 
@@ -202,68 +201,60 @@ export const register = async (req: Request, res: Response) => {
     relationshipStart = isStartDateValid ? startDateFromBody : new Date();
     pairingCodeToAssign = await generatePairingCode();
   } else {
-    partner = await UserModel.findOne({ pairingCode: sanitizedPairCode });
+    partner = await prisma.user.findUnique({ where: { pairingCode: sanitizedPairCode } });
     if (!partner) {
       return res.status(404).json({ message: '未找到对应的配对码，请确认后再试。' });
     }
-    if (partner.partner) {
+    if (partner.partnerId) {
       return res.status(409).json({ message: '该配对码已被使用。' });
     }
     relationshipStart = partner.relationshipConfirmedAt ?? new Date();
   }
 
-  const session = await mongoose.startSession();
-  session.startTransaction();
-
   try {
-    const createdUsers = await UserModel.create(
-      [
-        {
+    const createdUser = await prisma.$transaction(async (tx) => {
+      const user = await tx.user.create({
+        data: {
           username: normalizedUsername,
           passwordHash,
           gender: gender ?? 'other',
-          partner: partner ? partner._id : null,
+          partnerId: partner ? partner.id : null,
           pairingCode: pairingCodeToAssign,
           relationshipConfirmedAt: relationshipStart
         }
-      ],
-      { session }
-    );
+      });
 
-    const user = createdUsers[0];
+      if (!partner) {
+        await seedDefaultData(user, { startedOn: relationshipStart }, tx);
+      } else {
+        await tx.user.update({
+          where: { id: partner.id },
+          data: {
+            partnerId: user.id,
+            pairingCode: null,
+            relationshipConfirmedAt: relationshipStart
+          }
+        });
 
-    if (!partner) {
-      await seedDefaultData(user, { startedOn: relationshipStart }, session);
-    }
-
-    if (partner) {
-      partner.partner = user._id;
-      partner.pairingCode = null;
-      partner.relationshipConfirmedAt = relationshipStart;
-      await partner.save({ session });
-
-      await RelationshipModel.updateOne(
-        { $or: [{ userOne: partner._id }, { userTwo: partner._id }] },
-        {
-          $set: {
-            userTwo: user._id,
+        await tx.relationship.updateMany({
+          where: { OR: [{ userOneId: partner.id }, { userTwoId: partner.id }] },
+          data: {
+            userTwoId: user.id,
             coupleNames: [partner.username, user.username],
             startedOn: relationshipStart
           }
-        },
-        { session }
-      );
-    }
+        });
+      }
 
-    await session.commitTransaction();
+      return user;
+    });
 
-    const token = createToken(user);
-    return res.status(201).json({ token, user: serializeUser(user) });
+    const serialized = serializeUser(createdUser);
+    const token = createToken(serialized);
+    return res.status(201).json({ token, user: serialized });
   } catch (error) {
-    await session.abortTransaction();
+    console.error('Failed to register user', error);
     return res.status(500).json({ message: '初始化默认数据时出错，请稍后再试。' });
-  } finally {
-    session.endSession();
   }
 };
 
@@ -274,7 +265,7 @@ export const login = async (req: Request, res: Response) => {
     return res.status(400).json({ message: '请输入用户名和密码。' });
   }
 
-  const user = await UserModel.findOne({ username: username.trim() });
+  const user = await prisma.user.findUnique({ where: { username: username.trim() } });
   if (!user) {
     return res.status(401).json({ message: '用户名或密码错误。' });
   }
@@ -284,8 +275,9 @@ export const login = async (req: Request, res: Response) => {
     return res.status(401).json({ message: '用户名或密码错误。' });
   }
 
-  const token = createToken(user);
-  return res.json({ token, user: serializeUser(user) });
+  const serialized = serializeUser(user);
+  const token = createToken(serialized);
+  return res.json({ token, user: serialized });
 };
 
 export const getProfile = async (req: Request, res: Response) => {
@@ -294,7 +286,7 @@ export const getProfile = async (req: Request, res: Response) => {
     return res.status(401).json({ message: '未授权。' });
   }
 
-  const user = await UserModel.findById(authUser.id);
+  const user = await prisma.user.findUnique({ where: { id: authUser.id } });
   if (!user) {
     return res.status(404).json({ message: '用户不存在。' });
   }

@@ -1,7 +1,14 @@
 import type { Request, Response } from 'express';
-import BucketItemModel from '../models/bucket-item.js';
+import type { BucketItem as BucketItemModel, Prisma } from '@prisma/client';
+import prisma from '../lib/prisma.js';
 import type { AuthenticatedRequest } from '../middleware/auth.middleware.js';
 import { findRelationshipForUser } from '../utils/relationship.js';
+
+const mapBucketItem = ({ id, relationshipId: _relationshipId, position, ...rest }: BucketItemModel) => ({
+  ...rest,
+  order: position,
+  _id: id
+});
 
 export const listBucketItems = async (req: Request, res: Response) => {
   const { user } = req as AuthenticatedRequest;
@@ -14,8 +21,11 @@ export const listBucketItems = async (req: Request, res: Response) => {
     return res.status(404).json({ message: 'Relationship not configured yet.' });
   }
 
-  const items = await BucketItemModel.find({ relationship: relationship._id }).sort({ order: 1 });
-  return res.json(items);
+  const items = await prisma.bucketItem.findMany({
+    where: { relationshipId: relationship.id },
+    orderBy: { position: 'asc' }
+  });
+  return res.json(items.map(mapBucketItem));
 };
 
 export const createBucketItem = async (req: Request, res: Response) => {
@@ -29,8 +39,30 @@ export const createBucketItem = async (req: Request, res: Response) => {
     return res.status(404).json({ message: 'Relationship not configured yet.' });
   }
 
-  const item = await BucketItemModel.create({ ...req.body, relationship: relationship._id });
-  return res.status(201).json(item);
+  const body = req.body as { order?: number; title?: string; completed?: boolean };
+  if (!body.title) {
+    return res.status(400).json({ message: '标题不能为空。' });
+  }
+
+  const nextPosition =
+    typeof body.order === 'number'
+      ? body.order
+      : (await prisma.bucketItem.count({ where: { relationshipId: relationship.id } })) + 1;
+
+  try {
+    const item = await prisma.bucketItem.create({
+      data: {
+        relationshipId: relationship.id,
+        position: nextPosition,
+        title: body.title,
+        completed: body.completed ?? false
+      }
+    });
+    return res.status(201).json(mapBucketItem(item));
+  } catch (error) {
+    console.error('Failed to create bucket item', error);
+    return res.status(500).json({ message: '创建清单项时出错，请稍后再试。' });
+  }
 };
 
 export const updateBucketItem = async (req: Request, res: Response) => {
@@ -40,23 +72,42 @@ export const updateBucketItem = async (req: Request, res: Response) => {
   }
 
   const { id } = req.params;
-  const updates = { ...req.body };
-  delete updates.relationship;
   const relationship = await findRelationshipForUser(user.id);
   if (!relationship) {
     return res.status(404).json({ message: 'Relationship not configured yet.' });
   }
 
-  const item = await BucketItemModel.findOneAndUpdate(
-    { _id: id, relationship: relationship._id },
-    updates,
-    {
-      new: true,
-      runValidators: true
-    }
-  );
-  if (!item) {
+  const existing = await prisma.bucketItem.findUnique({ where: { id } });
+  if (!existing || existing.relationshipId !== relationship.id) {
     return res.status(404).json({ message: 'Bucket item not found' });
   }
-  return res.json(item);
+
+  const { order, title, completed } = req.body as {
+    order?: number;
+    title?: string;
+    completed?: boolean;
+  };
+
+  const data: Prisma.BucketItemUpdateInput = {};
+  if (typeof order === 'number') {
+    data.position = order;
+  }
+  if (typeof title === 'string') {
+    data.title = title;
+  }
+  if (typeof completed === 'boolean') {
+    data.completed = completed;
+  }
+
+  if (Object.keys(data).length === 0) {
+    return res.json(mapBucketItem(existing));
+  }
+
+  try {
+    const item = await prisma.bucketItem.update({ where: { id }, data });
+    return res.json(mapBucketItem(item));
+  } catch (error) {
+    console.error('Failed to update bucket item', error);
+    return res.status(500).json({ message: '更新清单项时出错，请稍后再试。' });
+  }
 };
