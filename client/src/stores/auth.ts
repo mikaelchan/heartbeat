@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia';
 import axios from 'axios';
-import type { AuthResponse, UserGender, UserProfile } from '@/types/auth';
+import type { AuthResponse, RegisterPayload, UserProfile } from '@/types/auth';
 
 interface AuthState {
   user: UserProfile | null;
@@ -47,15 +47,11 @@ export const useAuthStore = defineStore('auth', {
       }
       this.initialized = true;
     },
-    async register(username: string, password: string, gender: UserGender) {
+    async register(payload: RegisterPayload) {
       this.loading = true;
       this.error = null;
       try {
-        const { data } = await axios.post<AuthResponse>('/api/auth/register', {
-          username,
-          password,
-          gender
-        });
+        const { data } = await axios.post<AuthResponse>('/api/auth/register', payload);
         this.applySession(data);
         return data.user;
       } catch (error: unknown) {
