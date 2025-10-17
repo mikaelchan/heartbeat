@@ -1,10 +1,13 @@
-import mongoose, { Schema, type Document, type Model } from 'mongoose';
+import mongoose, { Schema, type Document, type Model, type Types } from 'mongoose';
 import type { Memory as MemoryType } from '../types/index.js';
 
-export interface MemoryDocument extends MemoryType, Document {}
+export interface MemoryDocument extends MemoryType, Document {
+  user: Types.ObjectId;
+}
 
 const MemorySchema = new Schema(
   {
+    user: { type: Schema.Types.ObjectId, ref: 'User', required: true, index: true },
     title: { type: String, required: true },
     description: { type: String, required: true },
     photoUrl: { type: String, required: true },
@@ -17,7 +20,13 @@ const MemorySchema = new Schema(
   },
   {
     collection: 'memories',
-    timestamps: true
+    timestamps: true,
+    toJSON: {
+      transform: (_doc, ret) => {
+        Reflect.deleteProperty(ret, 'user');
+        return ret;
+      }
+    }
   }
 );
 
