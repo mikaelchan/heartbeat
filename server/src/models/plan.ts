@@ -2,12 +2,17 @@ import mongoose, { Schema, type Document, type Model, type Types } from 'mongoos
 import type { Plan as PlanType } from '../types/index.js';
 
 export interface PlanDocument extends PlanType, Document {
-  user: Types.ObjectId;
+  relationship: Types.ObjectId;
 }
 
 const PlanSchema = new Schema(
   {
-    user: { type: Schema.Types.ObjectId, ref: 'User', required: true, index: true },
+    relationship: {
+      type: Schema.Types.ObjectId,
+      ref: 'Relationship',
+      required: true,
+      index: true
+    },
     title: { type: String, required: true },
     description: { type: String, required: true },
     scheduledOn: { type: Date, required: true },
@@ -23,7 +28,7 @@ const PlanSchema = new Schema(
     timestamps: true,
     toJSON: {
       transform: (_doc, ret) => {
-        Reflect.deleteProperty(ret, 'user');
+        Reflect.deleteProperty(ret, 'relationship');
         return ret;
       }
     }

@@ -39,10 +39,11 @@ const seedDefaultData = async (
   session: mongoose.ClientSession
 ) => {
   const partnerName = options.partnerName ?? buildPartnerPlaceholder(user.gender);
-  await RelationshipModel.create(
+  const [relationship] = await RelationshipModel.create(
     [
       {
-        user: user._id,
+        userOne: user._id,
+        userTwo: null,
         coupleNames: [user.username, partnerName],
         startedOn: options.startedOn,
         milestones: [
@@ -58,23 +59,23 @@ const seedDefaultData = async (
   await MemoryModel.insertMany(
     [
       {
-        user: user._id,
+        relationship: relationship._id,
         title: '日落海边的约定',
         description: `${user.username} 和 ${partnerName} 一起看海的日落，偷偷约定每年都要来一次。`,
         photoUrl:
-        'https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?auto=format&fit=crop&w=600&q=80',
-      location: { lat: 22.5431, lng: 114.0579, placeName: '深圳·大梅沙' },
-      happenedOn: new Date('2022-10-02T10:00:00.000Z')
-    },
-    {
-      user: user._id,
-      title: '雪中的拥抱',
-      description: `${user.username} 把 ${partnerName} 揽在怀里，看漫天雪花。`,
-      photoUrl:
-        'https://images.unsplash.com/photo-1489515217757-5fd1be406fef?auto=format&fit=crop&w=600&q=80',
-      location: { lat: 41.8057, lng: 123.4315, placeName: '沈阳·棋盘山' },
-      happenedOn: new Date('2023-01-15T08:00:00.000Z')
-    }
+          'https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?auto=format&fit=crop&w=600&q=80',
+        location: { lat: 22.5431, lng: 114.0579, placeName: '深圳·大梅沙' },
+        happenedOn: new Date('2022-10-02T10:00:00.000Z')
+      },
+      {
+        relationship: relationship._id,
+        title: '雪中的拥抱',
+        description: `${user.username} 把 ${partnerName} 揽在怀里，看漫天雪花。`,
+        photoUrl:
+          'https://images.unsplash.com/photo-1489515217757-5fd1be406fef?auto=format&fit=crop&w=600&q=80',
+        location: { lat: 41.8057, lng: 123.4315, placeName: '沈阳·棋盘山' },
+        happenedOn: new Date('2023-01-15T08:00:00.000Z')
+      }
     ],
     { session }
   );
@@ -82,30 +83,30 @@ const seedDefaultData = async (
   await PlanModel.insertMany(
     [
       {
-        user: user._id,
+        relationship: relationship._id,
         title: '一起去看极光',
         description: `${user.username} 想牵着 ${partnerName} 在极光下跳舞。`,
         scheduledOn: new Date('2024-12-15T18:00:00.000Z'),
-      attachments: [
-        'https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?auto=format&fit=crop&w=200&q=80'
-      ],
-      status: 'upcoming'
-    },
-    {
-      user: user._id,
-      title: '拍一组情侣写真',
-      description: `${user.username} 想把这一年的故事做成一本相册送给 ${partnerName}。`,
-      scheduledOn: new Date('2024-05-20T09:00:00.000Z'),
-      attachments: [],
-      status: 'in-progress'
-    }
+        attachments: [
+          'https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?auto=format&fit=crop&w=200&q=80'
+        ],
+        status: 'upcoming'
+      },
+      {
+        relationship: relationship._id,
+        title: '拍一组情侣写真',
+        description: `${user.username} 想把这一年的故事做成一本相册送给 ${partnerName}。`,
+        scheduledOn: new Date('2024-05-20T09:00:00.000Z'),
+        attachments: [],
+        status: 'in-progress'
+      }
     ],
     { session }
   );
 
   await BucketItemModel.insertMany(
     Array.from({ length: 12 }, (_, index) => ({
-      user: user._id,
+      relationship: relationship._id,
       order: index + 1,
       title: `${user.username} 和 ${partnerName} 的第 ${index + 1} 件小事`,
       completed: index < 3
@@ -116,15 +117,15 @@ const seedDefaultData = async (
   await MessageModel.insertMany(
     [
       {
-        user: user._id,
+        relationship: relationship._id,
         author: 'me',
         content: `${user.username} 记录下今天的心动瞬间，期待与 ${partnerName} 的明天。`
-    },
-    {
-      user: user._id,
-      author: 'partner',
-      content: `${partnerName} 对 ${user.username} 说：谢谢你一直把我放在心上。`
-    }
+      },
+      {
+        relationship: relationship._id,
+        author: 'partner',
+        content: `${partnerName} 对 ${user.username} 说：谢谢你一直把我放在心上。`
+      }
     ],
     { session }
   );
@@ -193,7 +194,6 @@ export const register = async (req: Request, res: Response) => {
   let partner: UserDocument | null = null;
   let relationshipStart = new Date();
   let pairingCodeToAssign: string | null = null;
-  let partnerNameForSeed: string | undefined;
 
   if (pairingMode === 'create') {
     if (relationshipConfirmedAt && !isStartDateValid) {
@@ -210,7 +210,6 @@ export const register = async (req: Request, res: Response) => {
       return res.status(409).json({ message: '该配对码已被使用。' });
     }
     relationshipStart = partner.relationshipConfirmedAt ?? new Date();
-    partnerNameForSeed = partner.username;
   }
 
   const session = await mongoose.startSession();
@@ -233,7 +232,9 @@ export const register = async (req: Request, res: Response) => {
 
     const user = createdUsers[0];
 
-    await seedDefaultData(user, { startedOn: relationshipStart, partnerName: partnerNameForSeed }, session);
+    if (!partner) {
+      await seedDefaultData(user, { startedOn: relationshipStart }, session);
+    }
 
     if (partner) {
       partner.partner = user._id;
@@ -242,9 +243,10 @@ export const register = async (req: Request, res: Response) => {
       await partner.save({ session });
 
       await RelationshipModel.updateOne(
-        { user: partner._id },
+        { $or: [{ userOne: partner._id }, { userTwo: partner._id }] },
         {
           $set: {
+            userTwo: user._id,
             coupleNames: [partner.username, user.username],
             startedOn: relationshipStart
           }

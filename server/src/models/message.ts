@@ -2,12 +2,17 @@ import mongoose, { Schema, type Document, type Model, type Types } from 'mongoos
 import type { Message as MessageType } from '../types/index.js';
 
 export interface MessageDocument extends MessageType, Document {
-  user: Types.ObjectId;
+  relationship: Types.ObjectId;
 }
 
 const MessageSchema = new Schema(
   {
-    user: { type: Schema.Types.ObjectId, ref: 'User', required: true, index: true },
+    relationship: {
+      type: Schema.Types.ObjectId,
+      ref: 'Relationship',
+      required: true,
+      index: true
+    },
     author: { type: String, enum: ['me', 'partner'], required: true },
     content: { type: String, required: true }
   },
@@ -16,7 +21,7 @@ const MessageSchema = new Schema(
     timestamps: { createdAt: true, updatedAt: false },
     toJSON: {
       transform: (_doc, ret) => {
-        Reflect.deleteProperty(ret, 'user');
+        Reflect.deleteProperty(ret, 'relationship');
         return ret;
       }
     }
