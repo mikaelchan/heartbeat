@@ -16,7 +16,7 @@ interface State {
 
 const createFallbackRelationship = (username: string, gender: UserGender): Relationship => ({
   coupleNames: [username, getPartnerName(gender)],
-  startedOn: '2021-06-19T00:00:00.000Z',
+  startedOn: '2025-07-19T15:21:55.000Z',
   milestones: [
     { label: `${username} 与 ${getPartnerName(gender)} 第一次牵手`, date: '2021-07-03T00:00:00.000Z' },
     { label: '第一次旅行', date: '2022-05-03T00:00:00.000Z' },
