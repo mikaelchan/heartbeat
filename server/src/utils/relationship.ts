@@ -1,4 +1,8 @@
-import RelationshipModel from '../models/relationship.js';
+import prisma from '../lib/prisma.js';
 
 export const findRelationshipForUser = (userId: string) =>
-  RelationshipModel.findOne({ $or: [{ userOne: userId }, { userTwo: userId }] });
+  prisma.relationship.findFirst({
+    where: {
+      OR: [{ userOneId: userId }, { userTwoId: userId }]
+    }
+  });
