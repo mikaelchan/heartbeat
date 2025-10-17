@@ -13,7 +13,7 @@ interface State {
 
 const FALLBACK_RELATIONSHIP: Relationship = {
   coupleNames: ['我', '她'],
-  startedOn: '2020-02-14T00:00:00.000Z',
+  startedOn: '2025-06-19T00:00:00.000Z',
   milestones: [
     { label: '第一次牵手', date: '2020-03-01T00:00:00.000Z' },
     { label: '第一次旅行', date: '2021-05-03T00:00:00.000Z' },
