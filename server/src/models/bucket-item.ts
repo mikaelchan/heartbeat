@@ -2,12 +2,17 @@ import mongoose, { Schema, type Document, type Model, type Types } from 'mongoos
 import type { BucketItem as BucketItemType } from '../types/index.js';
 
 export interface BucketItemDocument extends BucketItemType, Document {
-  user: Types.ObjectId;
+  relationship: Types.ObjectId;
 }
 
 const BucketItemSchema = new Schema(
   {
-    user: { type: Schema.Types.ObjectId, ref: 'User', required: true, index: true },
+    relationship: {
+      type: Schema.Types.ObjectId,
+      ref: 'Relationship',
+      required: true,
+      index: true
+    },
     order: { type: Number, required: true },
     title: { type: String, required: true },
     completed: { type: Boolean, default: false }
@@ -17,14 +22,14 @@ const BucketItemSchema = new Schema(
     timestamps: true,
     toJSON: {
       transform: (_doc, ret) => {
-        Reflect.deleteProperty(ret, 'user');
+        Reflect.deleteProperty(ret, 'relationship');
         return ret;
       }
     }
   }
 );
 
-BucketItemSchema.index({ user: 1, order: 1 }, { unique: true });
+BucketItemSchema.index({ relationship: 1, order: 1 }, { unique: true });
 
 const BucketItemModel: Model<BucketItemDocument> =
   mongoose.models.BucketItem || mongoose.model<BucketItemDocument>('BucketItem', BucketItemSchema);

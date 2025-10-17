@@ -2,7 +2,8 @@ import mongoose, { Schema, type Document, type Model, type Types } from 'mongoos
 import type { Relationship as RelationshipType } from '../types/index.js';
 
 export interface RelationshipDocument extends RelationshipType, Document {
-  user: Types.ObjectId;
+  userOne: Types.ObjectId;
+  userTwo?: Types.ObjectId | null;
 }
 
 const MilestoneSchema = new Schema(
@@ -15,7 +16,8 @@ const MilestoneSchema = new Schema(
 
 const RelationshipSchema = new Schema(
   {
-    user: { type: Schema.Types.ObjectId, ref: 'User', required: true, index: true, unique: true },
+    userOne: { type: Schema.Types.ObjectId, ref: 'User', required: true },
+    userTwo: { type: Schema.Types.ObjectId, ref: 'User', default: null },
     coupleNames: { type: [String], required: true },
     startedOn: { type: Date, required: true },
     milestones: { type: [MilestoneSchema], default: [] }
@@ -25,12 +27,16 @@ const RelationshipSchema = new Schema(
     timestamps: true,
     toJSON: {
       transform: (_doc, ret) => {
-        Reflect.deleteProperty(ret, 'user');
+        Reflect.deleteProperty(ret, 'userOne');
+        Reflect.deleteProperty(ret, 'userTwo');
         return ret;
       }
     }
   }
 );
+
+RelationshipSchema.index({ userOne: 1 });
+RelationshipSchema.index({ userTwo: 1 });
 
 const RelationshipModel: Model<RelationshipDocument> =
   mongoose.models.Relationship || mongoose.model<RelationshipDocument>('Relationship', RelationshipSchema);
