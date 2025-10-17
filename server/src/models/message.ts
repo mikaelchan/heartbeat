@@ -1,16 +1,25 @@
-import mongoose, { Schema, type Document, type Model } from 'mongoose';
+import mongoose, { Schema, type Document, type Model, type Types } from 'mongoose';
 import type { Message as MessageType } from '../types/index.js';
 
-export interface MessageDocument extends MessageType, Document {}
+export interface MessageDocument extends MessageType, Document {
+  user: Types.ObjectId;
+}
 
 const MessageSchema = new Schema(
   {
+    user: { type: Schema.Types.ObjectId, ref: 'User', required: true, index: true },
     author: { type: String, enum: ['me', 'partner'], required: true },
     content: { type: String, required: true }
   },
   {
     collection: 'messages',
-    timestamps: { createdAt: true, updatedAt: false }
+    timestamps: { createdAt: true, updatedAt: false },
+    toJSON: {
+      transform: (_doc, ret) => {
+        Reflect.deleteProperty(ret, 'user');
+        return ret;
+      }
+    }
   }
 );
 

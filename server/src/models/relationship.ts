@@ -1,7 +1,9 @@
-import mongoose, { Schema, type Document, type Model } from 'mongoose';
+import mongoose, { Schema, type Document, type Model, type Types } from 'mongoose';
 import type { Relationship as RelationshipType } from '../types/index.js';
 
-export interface RelationshipDocument extends RelationshipType, Document {}
+export interface RelationshipDocument extends RelationshipType, Document {
+  user: Types.ObjectId;
+}
 
 const MilestoneSchema = new Schema(
   {
@@ -13,13 +15,20 @@ const MilestoneSchema = new Schema(
 
 const RelationshipSchema = new Schema(
   {
+    user: { type: Schema.Types.ObjectId, ref: 'User', required: true, index: true, unique: true },
     coupleNames: { type: [String], required: true },
     startedOn: { type: Date, required: true },
     milestones: { type: [MilestoneSchema], default: [] }
   },
   {
     collection: 'relationships',
-    timestamps: true
+    timestamps: true,
+    toJSON: {
+      transform: (_doc, ret) => {
+        Reflect.deleteProperty(ret, 'user');
+        return ret;
+      }
+    }
   }
 );
 

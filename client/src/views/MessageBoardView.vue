@@ -5,8 +5,8 @@
       <label>
         我是谁？
         <select v-model="author">
-          <option value="me">我</option>
-          <option value="partner">Ta</option>
+          <option value="me">{{ selfLabel }}</option>
+          <option value="partner">{{ partnerLabel }}</option>
         </select>
       </label>
       <label class="full">
@@ -19,6 +19,7 @@
       <div class="rail"></div>
       <div v-for="message in store.messages" :key="message._id ?? message.createdAt" class="timeline-item" :data-author="message.author">
         <div class="bubble">
+          <span class="author">{{ displayAuthor(message.author) }}</span>
           <p class="text">{{ message.content }}</p>
           <span class="time">{{ formatTime(message.createdAt) }}</span>
         </div>
@@ -28,11 +29,14 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, ref } from 'vue';
+import { computed, onMounted, ref } from 'vue';
 import dayjs from 'dayjs';
 import { useHeartbeatStore } from '@/stores/heartbeat';
+import { useAuthStore } from '@/stores/auth';
+import { getPartnerName } from '@/utils/user';
 
 const store = useHeartbeatStore();
+const auth = useAuthStore();
 const author = ref<'me' | 'partner'>('me');
 const content = ref('');
 
@@ -43,6 +47,11 @@ onMounted(async () => {
 });
 
 const formatTime = (value: string) => dayjs(value).format('YYYY/MM/DD HH:mm');
+
+const selfLabel = computed(() => auth.user?.username ?? '我');
+const partnerLabel = computed(() => getPartnerName(auth.user?.gender ?? 'other'));
+
+const displayAuthor = (value: 'me' | 'partner') => (value === 'me' ? selfLabel.value : partnerLabel.value);
 
 const handleSubmit = async () => {
   if (!content.value.trim()) return;
@@ -125,6 +134,12 @@ const handleSubmit = async () => {
 
 .timeline-item[data-author='partner'] .bubble {
   background: rgba(142, 189, 255, 0.26);
+}
+
+.author {
+  font-weight: 600;
+  display: block;
+  margin-bottom: 0.4rem;
 }
 
 .text {

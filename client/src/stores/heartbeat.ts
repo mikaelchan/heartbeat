@@ -1,6 +1,9 @@
 import { defineStore } from 'pinia';
 import axios from 'axios';
 import type { Relationship, Memory, Plan, BucketItem, Message } from '@/types';
+import { useAuthStore } from './auth';
+import type { UserGender } from '@/types/auth';
+import { getPartnerName } from '@/utils/user';
 
 interface State {
   relationship: Relationship | null;
@@ -11,68 +14,82 @@ interface State {
   loading: boolean;
 }
 
-const FALLBACK_RELATIONSHIP: Relationship = {
-  coupleNames: ['我', '她'],
-  startedOn: '2025-06-19T00:00:00.000Z',
+const createFallbackRelationship = (username: string, gender: UserGender): Relationship => ({
+  coupleNames: [username, getPartnerName(gender)],
+  startedOn: '2021-06-19T00:00:00.000Z',
   milestones: [
-    { label: '第一次牵手', date: '2020-03-01T00:00:00.000Z' },
-    { label: '第一次旅行', date: '2021-05-03T00:00:00.000Z' },
-    { label: '相伴同居', date: '2022-08-20T00:00:00.000Z' }
+    { label: `${username} 与 ${getPartnerName(gender)} 第一次牵手`, date: '2021-07-03T00:00:00.000Z' },
+    { label: '第一次旅行', date: '2022-05-03T00:00:00.000Z' },
+    { label: '相伴同居', date: '2023-08-20T00:00:00.000Z' }
   ]
-};
+});
 
-const FALLBACK_MEMORIES: Memory[] = [
+const createFallbackMemories = (username: string, gender: UserGender): Memory[] => [
   {
     title: '日落海边',
-    description: '第一次一起看海的日落，约定以后每年都要来看一次。',
+    description: `${username} 与 ${getPartnerName(gender)} 第一次一起看海的日落，约定以后每年都要来看一次。`,
     photoUrl: 'https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?auto=format&fit=crop&w=600&q=80',
     location: { lat: 22.5431, lng: 114.0579, placeName: '深圳·大梅沙' },
-    happenedOn: '2021-10-02T10:00:00.000Z'
+    happenedOn: '2022-10-02T10:00:00.000Z'
   },
   {
     title: '雪中的拥抱',
-    description: '第一次北国旅行，被雪花包围的瞬间感受到了彼此的温度。',
+    description: `${username} 把 ${getPartnerName(gender)} 揽在怀里，看漫天雪花。`,
     photoUrl: 'https://images.unsplash.com/photo-1489515217757-5fd1be406fef?auto=format&fit=crop&w=600&q=80',
     location: { lat: 41.8057, lng: 123.4315, placeName: '沈阳·棋盘山' },
-    happenedOn: '2022-01-15T08:00:00.000Z'
+    happenedOn: '2023-01-15T08:00:00.000Z'
   }
 ];
 
-const FALLBACK_PLANS: Plan[] = [
+const createFallbackPlans = (username: string, gender: UserGender): Plan[] => [
   {
     title: '一起去看极光',
-    description: '2024 年冬天，我们要去最北的地方，记录极光下的吻。',
+    description: `${username} 想牵着 ${getPartnerName(gender)} 在极光下许愿。`,
     scheduledOn: '2024-12-15T18:00:00.000Z',
     attachments: ['https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?auto=format&fit=crop&w=200&q=80'],
     status: 'upcoming'
   },
   {
     title: '拍一组情侣写真',
-    description: '记录这一年的成长，把故事做成一本相册。',
+    description: `${username} 想把这一年的故事做成一本相册送给 ${getPartnerName(gender)}。`,
     scheduledOn: '2024-05-20T09:00:00.000Z',
     attachments: [],
     status: 'in-progress'
   }
 ];
 
-const FALLBACK_BUCKET: BucketItem[] = Array.from({ length: 12 }, (_, index) => ({
-  order: index + 1,
-  title: `一起完成第 ${index + 1} 件小事`,
-  completed: index < 3
-}));
+const createFallbackBucket = (username: string, gender: UserGender): BucketItem[] =>
+  Array.from({ length: 12 }, (_, index) => ({
+    order: index + 1,
+    title: `${username} 和 ${getPartnerName(gender)} 的第 ${index + 1} 件小事`,
+    completed: index < 3
+  }));
 
-const FALLBACK_MESSAGES: Message[] = [
+const createFallbackMessages = (username: string, gender: UserGender): Message[] => [
   {
     author: 'me',
-    content: '今天又偷偷地看你笑了好久，想把这份心动永远记下来。',
+    content: `${username} 记录下今天的心动瞬间，期待与 ${getPartnerName(gender)} 的明天。`,
     createdAt: new Date().toISOString()
   },
   {
     author: 'partner',
-    content: '谢谢你总是把我捧在手心，未来我们一起去更多的地方吧！',
+    content: `${getPartnerName(gender)} 对 ${username} 说：谢谢你一直把我放在心上。`,
     createdAt: new Date(Date.now() - 3600 * 1000).toISOString()
   }
 ];
+
+const createFallbackData = () => {
+  const authStore = useAuthStore();
+  const username = authStore.user?.username ?? '我';
+  const gender = authStore.user?.gender ?? 'other';
+  return {
+    relationship: createFallbackRelationship(username, gender),
+    memories: createFallbackMemories(username, gender),
+    plans: createFallbackPlans(username, gender),
+    bucket: createFallbackBucket(username, gender),
+    messages: createFallbackMessages(username, gender)
+  };
+};
 
 export const useHeartbeatStore = defineStore('heartbeat', {
   state: (): State => ({
@@ -85,8 +102,16 @@ export const useHeartbeatStore = defineStore('heartbeat', {
   }),
   actions: {
     async fetchAll() {
-      if (this.loading) return;
+      const authStore = useAuthStore();
+      if (!authStore.isAuthenticated || this.loading) {
+        if (!authStore.isAuthenticated) {
+          this.reset();
+        }
+        return;
+      }
+
       this.loading = true;
+      const fallback = createFallbackData();
       try {
         const [relationshipRes, memoriesRes, plansRes, bucketRes, messagesRes] = await Promise.allSettled([
           axios.get<Relationship>('/api/relationship'),
@@ -96,11 +121,12 @@ export const useHeartbeatStore = defineStore('heartbeat', {
           axios.get<Message[]>('/api/messages')
         ]);
 
-        this.relationship = relationshipRes.status === 'fulfilled' ? relationshipRes.value.data : FALLBACK_RELATIONSHIP;
-        this.memories = memoriesRes.status === 'fulfilled' ? memoriesRes.value.data : FALLBACK_MEMORIES;
-        this.plans = plansRes.status === 'fulfilled' ? plansRes.value.data : FALLBACK_PLANS;
-        this.bucket = bucketRes.status === 'fulfilled' ? bucketRes.value.data : FALLBACK_BUCKET;
-        this.messages = messagesRes.status === 'fulfilled' ? messagesRes.value.data : FALLBACK_MESSAGES;
+        this.relationship =
+          relationshipRes.status === 'fulfilled' ? relationshipRes.value.data : fallback.relationship;
+        this.memories = memoriesRes.status === 'fulfilled' ? memoriesRes.value.data : fallback.memories;
+        this.plans = plansRes.status === 'fulfilled' ? plansRes.value.data : fallback.plans;
+        this.bucket = bucketRes.status === 'fulfilled' ? bucketRes.value.data : fallback.bucket;
+        this.messages = messagesRes.status === 'fulfilled' ? messagesRes.value.data : fallback.messages;
       } finally {
         this.loading = false;
       }
@@ -117,6 +143,13 @@ export const useHeartbeatStore = defineStore('heartbeat', {
         };
         this.messages.unshift(optimisticMessage);
       }
+    },
+    reset() {
+      this.relationship = null;
+      this.memories = [];
+      this.plans = [];
+      this.bucket = [];
+      this.messages = [];
     }
   }
 });
