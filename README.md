@@ -29,6 +29,18 @@ CLIENT_ORIGIN=http://localhost:5173
 
 > ℹ️ If you're using Docker, you can start a MariaDB instance with `docker-compose -f docker-compose.mariadb.yml up -d`.
 
+### Database setup
+
+Apply the initial Prisma migration to create the required tables:
+
+```
+cd server
+npx prisma migrate deploy
+```
+
+This reads the SQL from `prisma/migrations/` and initializes the schema in the
+database configured by `DATABASE_URL`.
+
 ### Development
 
 Run the client and server concurrently:
