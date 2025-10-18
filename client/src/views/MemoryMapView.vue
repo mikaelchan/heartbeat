@@ -91,7 +91,7 @@ watch(
   height: 100%;
   border-radius: 24px;
   overflow: hidden;
-  box-shadow: inset 0 0 80px rgba(0, 0, 0, 0.25);
+  box-shadow: var(--map-shadow);
 }
 
 .memory-list {
@@ -108,7 +108,7 @@ watch(
   grid-template-columns: 120px 1fr;
   gap: 1rem;
   align-items: center;
-  background: rgba(255, 255, 255, 0.06);
+  background: var(--memory-card-surface);
   border-radius: 20px;
   padding: 1rem;
 }

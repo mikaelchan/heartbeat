@@ -11,14 +11,25 @@
         <RouterLink to="/plans">未来计划</RouterLink>
         <RouterLink to="/messages">心动留言</RouterLink>
       </nav>
-      <div class="auth-actions">
-        <template v-if="auth.isAuthenticated">
-          <button @click="handleLogout">退出登录</button>
-        </template>
-        <template v-else>
-          <RouterLink to="/login">登录</RouterLink>
-          <RouterLink class="primary" to="/register">注册</RouterLink>
-        </template>
+      <div class="header-controls">
+        <button
+          class="theme-toggle-button"
+          type="button"
+          @click="theme.cyclePreference()"
+          :aria-label="`切换主题，当前为${theme.preferenceLabel}`"
+        >
+          <span class="icon" aria-hidden="true">{{ theme.preferenceIcon }}</span>
+          <span class="label">{{ theme.preferenceLabel }}</span>
+        </button>
+        <div class="auth-actions">
+          <template v-if="auth.isAuthenticated">
+            <button @click="handleLogout">退出登录</button>
+          </template>
+          <template v-else>
+            <RouterLink to="/login">登录</RouterLink>
+            <RouterLink class="primary" to="/register">注册</RouterLink>
+          </template>
+        </div>
       </div>
     </header>
     <main>
@@ -33,10 +44,12 @@ import { useRouter } from 'vue-router';
 import { useHeartbeatStore } from '@/stores/heartbeat';
 import { useAuthStore } from '@/stores/auth';
 import { getGenderHonorific } from '@/utils/user';
+import { useThemeStore } from '@/stores/theme';
 
 const store = useHeartbeatStore();
 const auth = useAuthStore();
 const router = useRouter();
+const theme = useThemeStore();
 
 const greeting = computed(() => {
   if (!auth.user) {
@@ -102,7 +115,7 @@ watch(
 nav {
   display: flex;
   justify-content: center;
-  background: rgba(15, 23, 42, 0.06);
+  background: var(--nav-bg);
   padding: 0.35rem;
   border-radius: 999px;
   position: relative;
@@ -114,7 +127,7 @@ nav::after {
   position: absolute;
   inset: 0;
   border-radius: inherit;
-  box-shadow: inset 0 0 0 1px rgba(15, 23, 42, 0.06);
+  box-shadow: inset 0 0 0 1px var(--nav-border);
   pointer-events: none;
 }
 
@@ -129,7 +142,7 @@ nav a {
 }
 
 nav a.router-link-active {
-  color: #0f172a;
+  color: var(--nav-active-text);
 }
 
 nav a.router-link-active::before {
@@ -137,13 +150,45 @@ nav a.router-link-active::before {
   position: absolute;
   inset: 0;
   border-radius: inherit;
-  background: #ffffff;
-  box-shadow: 0 12px 20px rgba(59, 130, 246, 0.18);
+  background: var(--nav-active-bg);
+  box-shadow: var(--nav-active-shadow);
   z-index: -1;
 }
 
 nav a:active {
   transform: scale(0.97);
+}
+
+.header-controls {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.75rem;
+}
+
+.theme-toggle-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.5rem 1rem;
+  border-radius: 999px;
+  background: var(--interactive-muted);
+  color: var(--text-primary);
+  font-weight: 600;
+  border: 1px solid transparent;
+  box-shadow: none;
+}
+
+.theme-toggle-button:hover {
+  background: var(--interactive-muted-hover);
+}
+
+.theme-toggle-button:active {
+  transform: scale(0.97);
+}
+
+.theme-toggle-button .icon {
+  font-size: 1.1rem;
 }
 
 .auth-actions {
@@ -154,30 +199,34 @@ nav a:active {
 
 .auth-actions a,
 .auth-actions button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   border-radius: 999px;
   padding: 0.5rem 1.2rem;
   border: none;
   font-weight: 600;
   cursor: pointer;
-  background: rgba(15, 23, 42, 0.05);
-  color: #0f172a;
+  background: var(--interactive-muted);
+  color: var(--text-primary);
+  box-shadow: none;
   transition: background 0.2s ease, transform 0.2s ease;
 }
 
 .auth-actions a:hover,
 .auth-actions button:hover {
-  background: rgba(15, 23, 42, 0.08);
+  background: var(--interactive-muted-hover);
   transform: translateY(-1px);
 }
 
 .auth-actions .primary {
-  background: #007aff;
-  color: #ffffff;
-  box-shadow: 0 14px 28px rgba(0, 122, 255, 0.22);
+  background: var(--primary-button-bg);
+  color: var(--primary-button-text);
+  box-shadow: var(--primary-button-shadow);
 }
 
 .auth-actions .primary:hover {
-  background: #0066d6;
+  background: var(--primary-button-bg-hover);
 }
 
 @media (max-width: 900px) {
@@ -190,6 +239,11 @@ nav a:active {
   nav {
     margin: 0 auto;
     flex-wrap: wrap;
+  }
+
+  .header-controls {
+    justify-content: center;
+    flex-direction: column;
   }
 
   .auth-actions {

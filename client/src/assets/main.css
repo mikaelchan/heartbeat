@@ -1,25 +1,166 @@
 :root {
   font-family: 'SF Pro Display', 'SF Pro Text', -apple-system, BlinkMacSystemFont, 'Helvetica Neue', sans-serif;
-  color: #0f172a;
+  color: var(--text-primary);
   line-height: 1.6;
-  background-color: #f2f4ff;
-  background-image: radial-gradient(120% 120% at 50% -20%, #ffffff 0%, #eef2ff 40%, #fdf2ff 100%);
+  background-color: var(--background);
+  background-image: var(--background-gradient);
   min-height: 100%;
   color-scheme: light;
+  --text-primary: #0f172a;
+  --text-secondary: rgba(15, 23, 42, 0.55);
+  --background: #f2f4ff;
+  --background-gradient: radial-gradient(120% 120% at 50% -20%, #ffffff 0%, #eef2ff 40%, #fdf2ff 100%);
   --accent: #007aff;
   --accent-soft: rgba(0, 122, 255, 0.12);
   --accent-strong: rgba(0, 122, 255, 0.2);
+  --accent-glow: rgba(0, 122, 255, 0.18);
+  --link: #007aff;
   --surface: rgba(255, 255, 255, 0.72);
   --surface-solid: rgba(255, 255, 255, 0.92);
   --surface-border: rgba(255, 255, 255, 0.55);
+  --surface-soft: rgba(255, 255, 255, 0.45);
+  --surface-muted: rgba(255, 255, 255, 0.5);
+  --surface-subtle: rgba(255, 255, 255, 0.06);
+  --surface-subtle-strong: rgba(255, 255, 255, 0.12);
   --shadow-soft: 0 25px 60px rgba(15, 23, 42, 0.12);
-  --text-secondary: rgba(15, 23, 42, 0.55);
+  --shadow-card: 0 16px 30px rgba(15, 23, 42, 0.08);
+  --shadow-strong: 0 18px 32px rgba(0, 122, 255, 0.24);
+  --interactive-muted: rgba(15, 23, 42, 0.05);
+  --interactive-muted-hover: rgba(15, 23, 42, 0.08);
+  --button-surface-start: var(--surface-solid);
+  --button-surface-end: rgba(255, 255, 255, 0.74);
+  --button-text: var(--text-primary);
+  --button-shadow: 0 18px 38px rgba(99, 102, 241, 0.16);
+  --button-shadow-hover: 0 24px 45px rgba(99, 102, 241, 0.18);
+  --primary-button-bg: linear-gradient(135deg, #007aff 0%, #5f5cff 100%);
+  --primary-button-bg-hover: linear-gradient(135deg, #0066d6 0%, #4f46e5 100%);
+  --primary-button-text: #ffffff;
+  --primary-button-shadow: 0 14px 28px rgba(0, 122, 255, 0.22);
+  --nav-bg: rgba(15, 23, 42, 0.06);
+  --nav-border: rgba(15, 23, 42, 0.06);
+  --nav-active-bg: #ffffff;
+  --nav-active-text: #0f172a;
+  --nav-active-shadow: 0 12px 20px rgba(59, 130, 246, 0.18);
+  --glass-highlight: linear-gradient(145deg, rgba(255, 255, 255, 0.45), rgba(255, 255, 255, 0));
+  --gradient-text: linear-gradient(120deg, #5f5cff 0%, #8f8bff 40%, #ff93d0 85%, #ffb347 100%);
+  --input-background: rgba(255, 255, 255, 0.95);
+  --input-border: rgba(15, 23, 42, 0.08);
+  --input-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.6);
+  --range-track: rgba(15, 23, 42, 0.08);
+  --range-thumb-bg: #ffffff;
+  --range-thumb-border: rgba(15, 23, 42, 0.12);
+  --range-thumb-shadow: 0 6px 14px rgba(15, 23, 42, 0.15);
+  --hero-surface: rgba(255, 255, 255, 0.4);
+  --hero-glow: radial-gradient(circle at top left, rgba(255, 255, 255, 0.6), transparent 65%);
+  --orb-gradient-start: rgba(255, 255, 255, 0.9);
+  --orb-gradient-end: rgba(99, 102, 241, 0.08);
+  --orb-inner-glow: rgba(255, 255, 255, 0.55);
+  --orb-outer-glow: rgba(99, 102, 241, 0.2);
+  --milestone-surface: rgba(255, 255, 255, 0.5);
+  --milestone-shadow: 0 16px 30px rgba(15, 23, 42, 0.08);
+  --timeline-form-surface: rgba(255, 255, 255, 0.05);
+  --timeline-field-surface: rgba(255, 255, 255, 0.1);
+  --timeline-rail: linear-gradient(180deg, rgba(255, 255, 255, 0.8), rgba(255, 255, 255, 0.1));
+  --timeline-bubble: rgba(255, 255, 255, 0.14);
+  --timeline-bubble-partner: rgba(142, 189, 255, 0.26);
+  --timeline-shadow: 0 10px 25px rgba(0, 0, 0, 0.25);
+  --calendar-nav-background: rgba(255, 255, 255, 0.3);
+  --calendar-cell-background: rgba(255, 255, 255, 0.05);
+  --calendar-cell-border: rgba(255, 255, 255, 0.4);
+  --calendar-plan-background: rgba(255, 255, 255, 0.12);
+  --calendar-plan-completed: rgba(150, 242, 215, 0.28);
+  --calendar-plan-progress: rgba(255, 199, 255, 0.28);
+  --progress-bar-background: rgba(255, 255, 255, 0.12);
+  --progress-fill: linear-gradient(135deg, #ffc7ff, #8ebdff);
+  --bucket-card-background: rgba(255, 255, 255, 0.06);
+  --bucket-card-completed: rgba(150, 242, 215, 0.24);
+  --map-shadow: inset 0 0 80px rgba(0, 0, 0, 0.25);
+  --memory-card-surface: rgba(255, 255, 255, 0.06);
+  --form-error: #ff5d5d;
+}
+
+:root[data-theme='dark'] {
+  color: #e2e8f0;
+  color-scheme: dark;
+  --text-primary: #e2e8f0;
+  --text-secondary: rgba(148, 163, 184, 0.82);
+  --background: #050b1e;
+  --background-gradient: radial-gradient(120% 120% at 50% -20%, #0b1229 0%, #0b132a 40%, #1b1830 100%);
+  --accent: #38bdf8;
+  --accent-soft: rgba(56, 189, 248, 0.25);
+  --accent-strong: rgba(56, 189, 248, 0.35);
+  --accent-glow: rgba(56, 189, 248, 0.3);
+  --link: #7dd3fc;
+  --surface: rgba(15, 23, 42, 0.68);
+  --surface-solid: rgba(15, 23, 42, 0.88);
+  --surface-border: rgba(148, 163, 184, 0.2);
+  --surface-soft: rgba(30, 41, 59, 0.55);
+  --surface-muted: rgba(30, 41, 59, 0.65);
+  --surface-subtle: rgba(148, 163, 184, 0.12);
+  --surface-subtle-strong: rgba(148, 163, 184, 0.18);
+  --shadow-soft: 0 25px 60px rgba(2, 6, 23, 0.6);
+  --shadow-card: 0 16px 30px rgba(2, 6, 23, 0.55);
+  --shadow-strong: 0 18px 32px rgba(30, 64, 175, 0.32);
+  --interactive-muted: rgba(148, 163, 184, 0.16);
+  --interactive-muted-hover: rgba(148, 163, 184, 0.22);
+  --button-surface-start: rgba(79, 70, 229, 0.32);
+  --button-surface-end: rgba(59, 130, 246, 0.24);
+  --button-text: var(--text-primary);
+  --button-shadow: 0 18px 38px rgba(2, 6, 23, 0.55);
+  --button-shadow-hover: 0 24px 45px rgba(2, 6, 23, 0.6);
+  --primary-button-bg: linear-gradient(135deg, #38bdf8 0%, #818cf8 100%);
+  --primary-button-bg-hover: linear-gradient(135deg, #0ea5e9 0%, #6366f1 100%);
+  --primary-button-text: #0b1120;
+  --primary-button-shadow: 0 18px 32px rgba(14, 165, 233, 0.32);
+  --nav-bg: rgba(148, 163, 184, 0.14);
+  --nav-border: rgba(148, 163, 184, 0.18);
+  --nav-active-bg: rgba(30, 41, 59, 0.9);
+  --nav-active-text: #e2e8f0;
+  --nav-active-shadow: 0 12px 24px rgba(14, 165, 233, 0.28);
+  --glass-highlight: linear-gradient(145deg, rgba(148, 163, 184, 0.25), rgba(15, 23, 42, 0));
+  --gradient-text: linear-gradient(120deg, #93c5fd 0%, #c4b5fd 40%, #f9a8d4 80%, #facc15 100%);
+  --input-background: rgba(15, 23, 42, 0.68);
+  --input-border: rgba(148, 163, 184, 0.32);
+  --input-shadow: inset 0 1px 0 rgba(15, 23, 42, 0.8);
+  --range-track: rgba(148, 163, 184, 0.25);
+  --range-thumb-bg: rgba(148, 163, 184, 0.6);
+  --range-thumb-border: rgba(148, 163, 184, 0.35);
+  --range-thumb-shadow: 0 6px 16px rgba(2, 6, 23, 0.5);
+  --hero-surface: rgba(15, 23, 42, 0.7);
+  --hero-glow: radial-gradient(circle at top left, rgba(14, 165, 233, 0.25), transparent 65%);
+  --orb-gradient-start: rgba(125, 211, 252, 0.35);
+  --orb-gradient-end: rgba(59, 130, 246, 0.3);
+  --orb-inner-glow: rgba(96, 165, 250, 0.35);
+  --orb-outer-glow: rgba(14, 116, 144, 0.45);
+  --milestone-surface: rgba(30, 41, 59, 0.75);
+  --milestone-shadow: 0 16px 30px rgba(2, 6, 23, 0.55);
+  --timeline-form-surface: rgba(15, 23, 42, 0.5);
+  --timeline-field-surface: rgba(30, 41, 59, 0.65);
+  --timeline-rail: linear-gradient(180deg, rgba(96, 165, 250, 0.8), rgba(15, 23, 42, 0.2));
+  --timeline-bubble: rgba(30, 41, 59, 0.7);
+  --timeline-bubble-partner: rgba(59, 130, 246, 0.38);
+  --timeline-shadow: 0 10px 28px rgba(2, 6, 23, 0.55);
+  --calendar-nav-background: rgba(30, 41, 59, 0.6);
+  --calendar-cell-background: rgba(15, 23, 42, 0.45);
+  --calendar-cell-border: rgba(96, 165, 250, 0.45);
+  --calendar-plan-background: rgba(96, 165, 250, 0.18);
+  --calendar-plan-completed: rgba(45, 212, 191, 0.32);
+  --calendar-plan-progress: rgba(244, 114, 182, 0.32);
+  --progress-bar-background: rgba(15, 23, 42, 0.65);
+  --progress-fill: linear-gradient(135deg, #38bdf8, #818cf8);
+  --bucket-card-background: rgba(15, 23, 42, 0.55);
+  --bucket-card-completed: rgba(45, 212, 191, 0.28);
+  --map-shadow: inset 0 0 80px rgba(2, 6, 23, 0.65);
+  --memory-card-surface: rgba(30, 41, 59, 0.55);
+  --form-error: #f87171;
 }
 
 body {
   margin: 0;
   min-height: 100vh;
-  background: transparent;
+  background-color: var(--background);
+  background-image: var(--background-gradient);
+  color: var(--text-primary);
 }
 
 #app {
@@ -43,7 +184,7 @@ body {
   position: absolute;
   inset: 0;
   border-radius: inherit;
-  background: linear-gradient(145deg, rgba(255, 255, 255, 0.45), rgba(255, 255, 255, 0));
+  background: var(--glass-highlight);
   pointer-events: none;
 }
 
@@ -57,7 +198,7 @@ body {
 }
 
 .gradient-text {
-  background: linear-gradient(120deg, #5f5cff 0%, #8f8bff 40%, #ff93d0 85%, #ffb347 100%);
+  background: var(--gradient-text);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   text-fill-color: transparent;
@@ -73,16 +214,16 @@ button {
   border-radius: 999px;
   border: none;
   padding: 0.65rem 1.6rem;
-  background: linear-gradient(180deg, var(--surface-solid) 0%, rgba(255, 255, 255, 0.74) 100%);
-  color: #0f172a;
+  background: linear-gradient(180deg, var(--button-surface-start) 0%, var(--button-surface-end) 100%);
+  color: var(--button-text);
   cursor: pointer;
   transition: transform 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
-  box-shadow: 0 18px 38px rgba(99, 102, 241, 0.16);
+  box-shadow: var(--button-shadow);
 }
 
 button:hover:not(:disabled) {
   transform: translateY(-1px);
-  box-shadow: 0 24px 45px rgba(99, 102, 241, 0.18);
+  box-shadow: var(--button-shadow-hover);
 }
 
 button:disabled {
