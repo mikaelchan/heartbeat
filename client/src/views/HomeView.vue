@@ -8,14 +8,28 @@
     </p>
   </section>
   <section class="glass-panel" v-if="relationship">
-    <div class="hero">
-      <div>
-        <p class="tag">{{ relationship.coupleNames.join(' · ') }}</p>
-        <h2 class="duration gradient-text">{{ durationDisplay }}</h2>
-        <p class="started">自 {{ formattedStart }}</p>
+    <LiquidGlass
+      class="hero-liquid-glass"
+      mode="shader"
+      effect="flowingLiquid"
+      :displacement-scale="62"
+      :blur-amount="0.08"
+      :saturation="150"
+      :elasticity="0.25"
+      :aberration-intensity="2.2"
+      :corner-radius="28"
+      padding="28px 32px"
+      :style="{ width: '100%' }"
+    >
+      <div class="hero">
+        <div class="hero-text">
+          <p class="tag">{{ relationship.coupleNames.join(' · ') }}</p>
+          <h2 class="duration gradient-text">{{ durationDisplay }}</h2>
+          <p class="started">自 {{ formattedStart }}</p>
+        </div>
+        <div class="floating-orb"></div>
       </div>
-      <div class="floating-orb"></div>
-    </div>
+    </LiquidGlass>
   </section>
   <section class="glass-panel" v-if="relationship">
     <h3 class="section-title">重要时刻</h3>
@@ -38,6 +52,7 @@ import duration from 'dayjs/plugin/duration';
 import relativeTime from 'dayjs/plugin/relativeTime';
 import { useHeartbeatStore } from '@/stores/heartbeat';
 import { useAuthStore } from '@/stores/auth';
+import { LiquidGlass } from '@wxperia/liquid-glass-vue';
 
 dayjs.extend(duration);
 dayjs.extend(relativeTime);
@@ -106,24 +121,46 @@ const formatDate = (value: string) => dayjs(value).format('YYYY 年 M 月 D 日'
   text-shadow: 0 8px 16px var(--accent-glow);
 }
 
+.hero-liquid-glass {
+  width: 100%;
+  color: var(--text-primary);
+}
+
+.hero-liquid-glass :deep(.glass) {
+  width: 100%;
+  align-items: center;
+  gap: 2.5rem !important;
+}
+
+.hero-liquid-glass :deep(.glass__warp) {
+  background: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.6) 0%,
+    rgba(255, 255, 255, 0.15) 40%,
+    rgba(148, 163, 184, 0.08) 100%
+  );
+}
+
+.hero-liquid-glass :deep(.transition-all) {
+  width: 100%;
+  font: inherit !important;
+  color: inherit !important;
+  text-shadow: none !important;
+}
+
 .hero {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 2rem;
+  gap: 2.5rem;
+  width: 100%;
   position: relative;
-  overflow: hidden;
-  padding: 1rem 1.25rem;
-  border-radius: 28px;
-  background: var(--hero-surface);
 }
 
-.hero::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background: var(--hero-glow);
-  pointer-events: none;
+.hero-text {
+  display: grid;
+  gap: 0.75rem;
+  flex: 1;
 }
 
 .tag {
@@ -150,6 +187,7 @@ const formatDate = (value: string) => dayjs(value).format('YYYY 年 M 月 D 日'
   background: radial-gradient(circle at 30% 30%, var(--orb-gradient-start), var(--orb-gradient-end));
   animation: float 6s ease-in-out infinite;
   box-shadow: inset 0 0 60px var(--orb-inner-glow), 0 18px 40px var(--orb-outer-glow);
+  flex-shrink: 0;
 }
 
 @keyframes float {
@@ -192,6 +230,14 @@ const formatDate = (value: string) => dayjs(value).format('YYYY 年 M 月 D 日'
   .hero {
     flex-direction: column;
     text-align: center;
+  }
+
+  .hero-liquid-glass :deep(.glass) {
+    gap: 1.75rem !important;
+  }
+
+  .hero-text {
+    justify-items: center;
   }
 
   .floating-orb {
