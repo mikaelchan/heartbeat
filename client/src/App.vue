@@ -73,46 +73,77 @@ watch(
 
 <style scoped>
 .app-header {
-  padding: 1.25rem 2rem;
+  padding: 1.4rem 2.4rem;
   display: grid;
   grid-template-columns: auto 1fr auto;
   align-items: center;
-  gap: 1.5rem;
-}
-
-.brand-block h1 {
-  font-size: 2.4rem;
-  font-weight: 700;
-  margin: 0;
+  gap: 2rem;
 }
 
 .brand-block {
   display: flex;
   flex-direction: column;
+  gap: 0.25rem;
+}
+
+.brand-block h1 {
+  font-size: 2.5rem;
+  font-weight: 700;
+  margin: 0;
+  letter-spacing: -0.02em;
 }
 
 .greeting {
-  margin: 0.25rem 0 0;
-  opacity: 0.8;
-  font-size: 0.95rem;
+  margin: 0;
+  font-size: 1rem;
+  color: var(--text-secondary);
 }
 
 nav {
   display: flex;
-  gap: 1rem;
   justify-content: center;
+  background: rgba(15, 23, 42, 0.06);
+  padding: 0.35rem;
+  border-radius: 999px;
+  position: relative;
+  gap: 0.25rem;
+}
+
+nav::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  box-shadow: inset 0 0 0 1px rgba(15, 23, 42, 0.06);
+  pointer-events: none;
 }
 
 nav a {
-  padding: 0.3rem 0.8rem;
+  position: relative;
+  padding: 0.45rem 1.2rem;
   border-radius: 999px;
   font-weight: 600;
-  transition: background 0.2s ease, color 0.2s ease;
+  color: var(--text-secondary);
+  transition: color 0.2s ease, transform 0.2s ease;
+  z-index: 0;
 }
 
 nav a.router-link-active {
-  background: rgba(255, 255, 255, 0.25);
-  color: #091234;
+  color: #0f172a;
+}
+
+nav a.router-link-active::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: #ffffff;
+  box-shadow: 0 12px 20px rgba(59, 130, 246, 0.18);
+  z-index: -1;
+}
+
+nav a:active {
+  transform: scale(0.97);
 }
 
 .auth-actions {
@@ -124,38 +155,44 @@ nav a.router-link-active {
 .auth-actions a,
 .auth-actions button {
   border-radius: 999px;
-  padding: 0.4rem 1rem;
+  padding: 0.5rem 1.2rem;
   border: none;
   font-weight: 600;
   cursor: pointer;
-  background: rgba(255, 255, 255, 0.25);
-  color: inherit;
+  background: rgba(15, 23, 42, 0.05);
+  color: #0f172a;
+  transition: background 0.2s ease, transform 0.2s ease;
+}
+
+.auth-actions a:hover,
+.auth-actions button:hover {
+  background: rgba(15, 23, 42, 0.08);
+  transform: translateY(-1px);
 }
 
 .auth-actions .primary {
-  background: rgba(255, 255, 255, 0.6);
-  color: #091234;
+  background: #007aff;
+  color: #ffffff;
+  box-shadow: 0 14px 28px rgba(0, 122, 255, 0.22);
 }
 
-.auth-actions button:hover,
-.auth-actions a:hover {
-  background: rgba(255, 255, 255, 0.4);
+.auth-actions .primary:hover {
+  background: #0066d6;
 }
 
-@media (max-width: 768px) {
+@media (max-width: 900px) {
   .app-header {
     grid-template-columns: 1fr;
     text-align: center;
+    gap: 1.25rem;
   }
 
   nav {
-    order: 3;
+    margin: 0 auto;
     flex-wrap: wrap;
-    justify-content: center;
   }
 
   .auth-actions {
-    order: 2;
     justify-content: center;
   }
 }
