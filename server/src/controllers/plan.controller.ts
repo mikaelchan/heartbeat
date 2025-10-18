@@ -4,10 +4,13 @@ import prisma from '../lib/prisma.js';
 import type { AuthenticatedRequest } from '../middleware/auth.middleware.js';
 import { findRelationshipForUser } from '../utils/relationship.js';
 
-const mapPlan = ({ id, relationshipId: _relationshipId, ...rest }: PlanModel) => ({
-  ...rest,
-  _id: id
-});
+const mapPlan = ({ id, relationshipId, ...rest }: PlanModel) => {
+  void relationshipId;
+  return {
+    ...rest,
+    _id: id
+  };
+};
 
 export const listPlans = async (req: Request, res: Response) => {
   const { user } = req as AuthenticatedRequest;

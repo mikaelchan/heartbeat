@@ -4,6 +4,25 @@ export interface Relationship {
   milestones: { label: string; date: string }[];
 }
 
+export interface RelationshipSummary {
+  coupleNames: string[];
+  startedOn: string;
+  milestoneCount: number;
+}
+
+export interface Milestone {
+  label: string;
+  date: string;
+}
+
+export interface PaginatedResult<T> {
+  items: T[];
+  page: number;
+  pageSize: number;
+  totalItems: number;
+  totalPages: number;
+}
+
 export interface Memory {
   _id?: string;
   title: string;

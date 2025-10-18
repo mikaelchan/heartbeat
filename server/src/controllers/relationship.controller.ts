@@ -15,17 +15,40 @@ interface Milestone {
 
 const mapRelationship = ({
   id,
-  userOneId: _userOneId,
-  userTwoId: _userTwoId,
+  userOneId,
+  userTwoId,
   coupleNames,
   milestones,
   ...rest
-}: RelationshipModel) => ({
-  ...rest,
-  coupleNames: Array.isArray(coupleNames) ? (coupleNames as unknown as string[]) : [],
-  milestones: Array.isArray(milestones) ? (milestones as unknown as Milestone[]) : [],
-  _id: id
-});
+}: RelationshipModel) => {
+  void userOneId;
+  void userTwoId;
+  return {
+    ...rest,
+    coupleNames: Array.isArray(coupleNames) ? (coupleNames as unknown as string[]) : [],
+    milestones: Array.isArray(milestones) ? (milestones as unknown as Milestone[]) : [],
+    _id: id
+  };
+};
+
+const extractMilestones = (relationship: RelationshipModel): Milestone[] => {
+  if (!Array.isArray(relationship.milestones)) {
+    return [];
+  }
+
+  return (relationship.milestones as unknown as Milestone[]).map((milestone) => ({
+    label: milestone.label,
+    date: new Date(milestone.date).toISOString()
+  }));
+};
+
+const parsePositiveInteger = (value: unknown, fallback: number) => {
+  const parsed = Number.parseInt(String(value ?? ''), 10);
+  if (Number.isNaN(parsed) || parsed <= 0) {
+    return fallback;
+  }
+  return parsed;
+};
 
 const sanitizeMilestones = (milestones?: unknown): Milestone[] => {
   if (!Array.isArray(milestones)) {
@@ -62,6 +85,68 @@ export const getRelationship = async (req: Request, res: Response) => {
     return res.status(404).json({ message: 'Relationship not configured yet.' });
   }
   return res.json(mapRelationship(relationship));
+};
+
+export const getRelationshipSummary = async (req: Request, res: Response) => {
+  const { user } = req as AuthenticatedRequest;
+  if (!user) {
+    return res.status(401).json({ message: '未授权。' });
+  }
+
+  const relationship = await prisma.relationship.findFirst({
+    where: {
+      OR: [{ userOneId: user.id }, { userTwoId: user.id }]
+    }
+  });
+
+  if (!relationship) {
+    return res.status(404).json({ message: 'Relationship not configured yet.' });
+  }
+
+  const milestones = extractMilestones(relationship);
+
+  return res.json({
+    coupleNames: Array.isArray(relationship.coupleNames)
+      ? (relationship.coupleNames as unknown as string[])
+      : [],
+    startedOn: relationship.startedOn.toISOString(),
+    milestoneCount: milestones.length
+  });
+};
+
+export const listRelationshipMilestones = async (req: Request, res: Response) => {
+  const { user } = req as AuthenticatedRequest;
+  if (!user) {
+    return res.status(401).json({ message: '未授权。' });
+  }
+
+  const page = parsePositiveInteger(req.query.page, 1);
+  const pageSize = parsePositiveInteger(req.query.pageSize, 5);
+
+  const relationship = await prisma.relationship.findFirst({
+    where: {
+      OR: [{ userOneId: user.id }, { userTwoId: user.id }]
+    }
+  });
+
+  if (!relationship) {
+    return res.status(404).json({ message: 'Relationship not configured yet.' });
+  }
+
+  const milestones = extractMilestones(relationship);
+  const totalItems = milestones.length;
+  const totalPages = Math.max(1, Math.ceil(totalItems / pageSize));
+  const currentPage = Math.min(page, totalPages);
+  const start = (currentPage - 1) * pageSize;
+  const items = milestones.slice(start, start + pageSize);
+
+  return res.json({
+    items,
+    page: currentPage,
+    pageSize,
+    totalItems,
+    totalPages
+  });
 };
 
 export const upsertRelationship = async (req: Request, res: Response) => {

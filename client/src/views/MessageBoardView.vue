@@ -17,13 +17,22 @@
     </form>
     <div class="timeline">
       <div class="rail"></div>
-      <div v-for="message in store.messages" :key="message._id ?? message.createdAt" class="timeline-item" :data-author="message.author">
+      <div v-if="isLoading && !messages.length" class="timeline-loading">正在加载留言...</div>
+      <div
+        v-for="message in messages"
+        :key="message._id ?? message.createdAt"
+        class="timeline-item"
+        :data-author="message.author"
+      >
         <div class="bubble">
           <span class="author">{{ displayAuthor(message.author) }}</span>
           <p class="text">{{ message.content }}</p>
           <span class="time">{{ formatTime(message.createdAt) }}</span>
         </div>
       </div>
+    </div>
+    <div v-if="canLoadMore" class="load-more">
+      <button type="button" @click="loadMore" :disabled="isLoading">加载更多故事</button>
     </div>
   </section>
 </template>
@@ -42,7 +51,7 @@ const content = ref('');
 
 onMounted(async () => {
   if (!store.messages.length) {
-    await store.fetchAll();
+    await store.fetchMessages();
   }
 });
 
@@ -50,6 +59,10 @@ const formatTime = (value: string) => dayjs(value).format('YYYY/MM/DD HH:mm');
 
 const selfLabel = computed(() => auth.user?.username ?? '我');
 const partnerLabel = computed(() => getPartnerName(auth.user?.gender ?? 'other'));
+const messages = computed(() => store.messages);
+const isLoading = computed(() => store.messagesLoading);
+const messageMeta = computed(() => store.messageMeta);
+const canLoadMore = computed(() => messageMeta.value.page < messageMeta.value.totalPages);
 
 const displayAuthor = (value: 'me' | 'partner') => (value === 'me' ? selfLabel.value : partnerLabel.value);
 
@@ -57,6 +70,11 @@ const handleSubmit = async () => {
   if (!content.value.trim()) return;
   await store.addMessage(author.value, content.value.trim());
   content.value = '';
+};
+
+const loadMore = async () => {
+  if (isLoading.value || messageMeta.value.page >= messageMeta.value.totalPages) return;
+  await store.fetchMessages(messageMeta.value.page + 1, messageMeta.value.pageSize, { append: true });
 };
 </script>
 
@@ -114,6 +132,11 @@ const handleSubmit = async () => {
   transform: translateX(-50%);
 }
 
+.timeline-loading {
+  text-align: center;
+  color: var(--text-secondary);
+}
+
 .timeline-item {
   display: flex;
   justify-content: flex-start;
@@ -150,6 +173,12 @@ const handleSubmit = async () => {
 .time {
   opacity: 0.7;
   font-size: 0.85rem;
+}
+
+.load-more {
+  margin-top: 2rem;
+  display: flex;
+  justify-content: center;
 }
 
 @media (max-width: 768px) {

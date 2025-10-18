@@ -13,7 +13,7 @@
       </label>
       <div class="field-group">
         <span class="field-label">注册方式</span>
-        <div class="mode-toggle" role="radiogroup">
+        <div class="segmented-control" role="radiogroup">
           <button
             type="button"
             role="radio"
@@ -58,21 +58,18 @@
       </label>
       <div class="field-group">
         <span class="field-label">性别</span>
-        <div class="gender-slider">
-          <input
-            id="gender-slider"
-            v-model.number="genderSliderValue"
-            type="range"
-            min="0"
-            max="2"
-            step="1"
-            aria-labelledby="gender-slider"
-          />
-          <div class="slider-labels">
-            <span v-for="(option, index) in genderOptions" :key="option.value" :class="{ active: genderSliderValue === index }">
-              {{ option.label }}
-            </span>
-          </div>
+        <div class="segmented-control" role="radiogroup">
+          <button
+            v-for="option in genderOptions"
+            :key="option.value"
+            type="button"
+            role="radio"
+            :aria-checked="gender === option.value"
+            :class="{ active: gender === option.value }"
+            @click="gender = option.value"
+          >
+            {{ option.label }}
+          </button>
         </div>
       </div>
       <button type="submit" :disabled="auth.loading">{{ auth.loading ? '注册中...' : '注册' }}</button>
@@ -87,7 +84,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref } from 'vue';
+import { ref } from 'vue';
 import { useRouter } from 'vue-router';
 import { useAuthStore } from '@/stores/auth';
 import { useHeartbeatStore } from '@/stores/heartbeat';
@@ -110,14 +107,6 @@ const genderOptions: Array<{ value: UserGender; label: string }> = [
   { value: 'other', label: '保密' },
   { value: 'male', label: '男生' }
 ];
-
-const genderSliderValue = computed({
-  get: () => genderOptions.findIndex((option) => option.value === gender.value),
-  set: (value: number) => {
-    const option = genderOptions[value];
-    gender.value = option ? option.value : 'other';
-  }
-});
 
 function formatDateForInput(date: Date) {
   const offset = date.getTimezoneOffset();
@@ -217,9 +206,9 @@ const handleSubmit = async () => {
   font-weight: 600;
 }
 
-.mode-toggle {
+.segmented-control {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(0, 1fr));
   background: var(--nav-bg);
   border-radius: 999px;
   padding: 0.35rem;
@@ -227,7 +216,7 @@ const handleSubmit = async () => {
   gap: 0.35rem;
 }
 
-.mode-toggle::after {
+.segmented-control::after {
   content: '';
   position: absolute;
   inset: 0;
@@ -236,7 +225,7 @@ const handleSubmit = async () => {
   pointer-events: none;
 }
 
-.mode-toggle button {
+.segmented-control button {
   border: none;
   border-radius: 999px;
   padding: 0.6rem 1rem;
@@ -249,11 +238,11 @@ const handleSubmit = async () => {
   z-index: 1;
 }
 
-.mode-toggle button.active {
+.segmented-control button.active {
   color: var(--nav-active-text);
 }
 
-.mode-toggle button.active::before {
+.segmented-control button.active::before {
   content: '';
   position: absolute;
   inset: 0;
@@ -263,7 +252,7 @@ const handleSubmit = async () => {
   z-index: -1;
 }
 
-.mode-toggle button:active {
+.segmented-control button:active {
   transform: scale(0.97);
 }
 
@@ -271,62 +260,6 @@ const handleSubmit = async () => {
   margin: 0;
   font-size: 0.85rem;
   color: var(--text-secondary);
-}
-
-.gender-slider {
-  display: flex;
-  flex-direction: column;
-  gap: 0.6rem;
-}
-
-.gender-slider input[type='range'] {
-  -webkit-appearance: none;
-  appearance: none;
-  width: 100%;
-  height: 7px;
-  border-radius: 999px;
-  background: var(--range-track);
-}
-
-.gender-slider input[type='range']::-webkit-slider-thumb {
-  -webkit-appearance: none;
-  appearance: none;
-  width: 26px;
-  height: 26px;
-  border-radius: 50%;
-  background: var(--range-thumb-bg);
-  border: 2px solid var(--range-thumb-border);
-  cursor: pointer;
-  box-shadow: var(--range-thumb-shadow);
-}
-
-.gender-slider input[type='range']::-moz-range-thumb {
-  width: 26px;
-  height: 26px;
-  border-radius: 50%;
-  background: var(--range-thumb-bg);
-  border: 2px solid var(--range-thumb-border);
-  cursor: pointer;
-  box-shadow: var(--range-thumb-shadow);
-}
-
-.slider-labels {
-  display: flex;
-  justify-content: space-between;
-  font-size: 0.9rem;
-}
-
-.slider-labels span {
-  flex: 1;
-  text-align: center;
-  opacity: 0.55;
-  font-weight: 600;
-  color: var(--text-secondary);
-}
-
-.slider-labels span.active {
-  opacity: 1;
-  color: var(--text-primary);
 }
 
 .auth-form button[type='submit'] {

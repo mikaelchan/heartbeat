@@ -4,11 +4,14 @@ import prisma from '../lib/prisma.js';
 import type { AuthenticatedRequest } from '../middleware/auth.middleware.js';
 import { findRelationshipForUser } from '../utils/relationship.js';
 
-const mapBucketItem = ({ id, relationshipId: _relationshipId, position, ...rest }: BucketItemModel) => ({
-  ...rest,
-  order: position,
-  _id: id
-});
+const mapBucketItem = ({ id, relationshipId, position, ...rest }: BucketItemModel) => {
+  void relationshipId;
+  return {
+    ...rest,
+    order: position,
+    _id: id
+  };
+};
 
 export const listBucketItems = async (req: Request, res: Response) => {
   const { user } = req as AuthenticatedRequest;

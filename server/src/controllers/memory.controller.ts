@@ -4,10 +4,13 @@ import prisma from '../lib/prisma.js';
 import type { AuthenticatedRequest } from '../middleware/auth.middleware.js';
 import { findRelationshipForUser } from '../utils/relationship.js';
 
-const mapMemory = ({ id, relationshipId: _relationshipId, ...rest }: MemoryModel) => ({
-  ...rest,
-  _id: id
-});
+const mapMemory = ({ id, relationshipId, ...rest }: MemoryModel) => {
+  void relationshipId;
+  return {
+    ...rest,
+    _id: id
+  };
+};
 
 export const listMemories = async (req: Request, res: Response) => {
   const { user } = req as AuthenticatedRequest;
