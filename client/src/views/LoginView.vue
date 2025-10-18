@@ -74,16 +74,16 @@ const handleSubmit = async () => {
   display: flex;
   flex-direction: column;
   gap: 0.45rem;
-  color: #0f172a;
+  color: var(--text-primary);
 }
 
 .auth-form input {
   border-radius: 16px;
-  border: 1px solid rgba(15, 23, 42, 0.08);
+  border: 1px solid var(--input-border);
   padding: 0.85rem 1.1rem;
-  background: rgba(255, 255, 255, 0.95);
+  background: var(--input-background);
   color: inherit;
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.6);
+  box-shadow: var(--input-shadow);
   transition: border-color 0.2s ease, box-shadow 0.2s ease;
 }
 
@@ -95,17 +95,17 @@ const handleSubmit = async () => {
 
 .auth-form button[type='submit'] {
   margin-top: 0.5rem;
-  background: linear-gradient(135deg, #007aff 0%, #5f5cff 100%);
-  color: #ffffff;
-  box-shadow: 0 18px 32px rgba(0, 122, 255, 0.24);
+  background: var(--primary-button-bg);
+  color: var(--primary-button-text);
+  box-shadow: var(--primary-button-shadow);
 }
 
 .auth-form button[type='submit']:hover:not(:disabled) {
-  background: linear-gradient(135deg, #0066d6 0%, #4f46e5 100%);
+  background: var(--primary-button-bg-hover);
 }
 
 .error {
-  color: #ff5d5d;
+  color: var(--form-error);
   margin: 0;
 }
 
@@ -115,7 +115,7 @@ const handleSubmit = async () => {
 }
 
 .switch a {
-  color: #007aff;
+  color: var(--link);
   font-weight: 600;
 }
 </style>

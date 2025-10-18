@@ -66,7 +66,7 @@ const handleSubmit = async () => {
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 1rem;
   margin-bottom: 2rem;
-  background: rgba(255, 255, 255, 0.05);
+  background: var(--timeline-form-surface);
   border-radius: 18px;
   padding: 1rem;
 }
@@ -84,7 +84,7 @@ const handleSubmit = async () => {
   border: none;
   padding: 0.6rem 0.75rem;
   font-family: inherit;
-  background: rgba(255, 255, 255, 0.1);
+  background: var(--timeline-field-surface);
   color: inherit;
 }
 
@@ -110,7 +110,7 @@ const handleSubmit = async () => {
   top: 0;
   width: 2px;
   height: 100%;
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.8), rgba(255, 255, 255, 0.1));
+  background: var(--timeline-rail);
   transform: translateX(-50%);
 }
 
@@ -128,12 +128,12 @@ const handleSubmit = async () => {
   max-width: min(380px, 70vw);
   padding: 1rem 1.2rem;
   border-radius: 20px;
-  background: rgba(255, 255, 255, 0.14);
-  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.25);
+  background: var(--timeline-bubble);
+  box-shadow: var(--timeline-shadow);
 }
 
 .timeline-item[data-author='partner'] .bubble {
-  background: rgba(142, 189, 255, 0.26);
+  background: var(--timeline-bubble-partner);
 }
 
 .author {

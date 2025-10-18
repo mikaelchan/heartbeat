@@ -186,16 +186,16 @@ const handleSubmit = async () => {
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
-  color: #0f172a;
+  color: var(--text-primary);
 }
 
 .auth-form input {
   border-radius: 16px;
-  border: 1px solid rgba(15, 23, 42, 0.08);
+  border: 1px solid var(--input-border);
   padding: 0.85rem 1.1rem;
-  background: rgba(255, 255, 255, 0.95);
+  background: var(--input-background);
   color: inherit;
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.6);
+  box-shadow: var(--input-shadow);
   transition: border-color 0.2s ease, box-shadow 0.2s ease;
 }
 
@@ -210,7 +210,7 @@ const handleSubmit = async () => {
   display: flex;
   flex-direction: column;
   gap: 0.75rem;
-  color: #0f172a;
+  color: var(--text-primary);
 }
 
 .field-label {
@@ -220,7 +220,7 @@ const handleSubmit = async () => {
 .mode-toggle {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  background: rgba(15, 23, 42, 0.06);
+  background: var(--nav-bg);
   border-radius: 999px;
   padding: 0.35rem;
   position: relative;
@@ -232,7 +232,7 @@ const handleSubmit = async () => {
   position: absolute;
   inset: 0;
   border-radius: inherit;
-  box-shadow: inset 0 0 0 1px rgba(15, 23, 42, 0.05);
+  box-shadow: inset 0 0 0 1px var(--nav-border);
   pointer-events: none;
 }
 
@@ -250,7 +250,7 @@ const handleSubmit = async () => {
 }
 
 .mode-toggle button.active {
-  color: #0f172a;
+  color: var(--nav-active-text);
 }
 
 .mode-toggle button.active::before {
@@ -258,8 +258,8 @@ const handleSubmit = async () => {
   position: absolute;
   inset: 0;
   border-radius: inherit;
-  background: #ffffff;
-  box-shadow: 0 12px 24px rgba(59, 130, 246, 0.18);
+  background: var(--nav-active-bg);
+  box-shadow: var(--nav-active-shadow);
   z-index: -1;
 }
 
@@ -285,7 +285,7 @@ const handleSubmit = async () => {
   width: 100%;
   height: 7px;
   border-radius: 999px;
-  background: rgba(15, 23, 42, 0.08);
+  background: var(--range-track);
 }
 
 .gender-slider input[type='range']::-webkit-slider-thumb {
@@ -294,20 +294,20 @@ const handleSubmit = async () => {
   width: 26px;
   height: 26px;
   border-radius: 50%;
-  background: #ffffff;
-  border: 2px solid rgba(15, 23, 42, 0.12);
+  background: var(--range-thumb-bg);
+  border: 2px solid var(--range-thumb-border);
   cursor: pointer;
-  box-shadow: 0 6px 14px rgba(15, 23, 42, 0.15);
+  box-shadow: var(--range-thumb-shadow);
 }
 
 .gender-slider input[type='range']::-moz-range-thumb {
   width: 26px;
   height: 26px;
   border-radius: 50%;
-  background: #ffffff;
-  border: 2px solid rgba(15, 23, 42, 0.12);
+  background: var(--range-thumb-bg);
+  border: 2px solid var(--range-thumb-border);
   cursor: pointer;
-  box-shadow: 0 6px 14px rgba(15, 23, 42, 0.15);
+  box-shadow: var(--range-thumb-shadow);
 }
 
 .slider-labels {
@@ -326,7 +326,7 @@ const handleSubmit = async () => {
 
 .slider-labels span.active {
   opacity: 1;
-  color: #0f172a;
+  color: var(--text-primary);
 }
 
 .auth-form button[type='submit'] {
@@ -335,19 +335,19 @@ const handleSubmit = async () => {
   padding: 0.85rem 1.1rem;
   font-weight: 700;
   cursor: pointer;
-  background: linear-gradient(135deg, #007aff 0%, #5f5cff 100%);
-  color: #ffffff;
-  box-shadow: 0 20px 36px rgba(0, 122, 255, 0.22);
+  background: var(--primary-button-bg);
+  color: var(--primary-button-text);
+  box-shadow: var(--primary-button-shadow);
   transition: transform 0.2s ease;
 }
 
 .auth-form button[type='submit']:hover:not(:disabled) {
   transform: translateY(-1px);
-  background: linear-gradient(135deg, #0066d6 0%, #4f46e5 100%);
+  background: var(--primary-button-bg-hover);
 }
 
 .error {
-  color: #ff5d5d;
+  color: var(--form-error);
   margin: 0;
 }
 
@@ -357,7 +357,7 @@ const handleSubmit = async () => {
 }
 
 .switch a {
-  color: #007aff;
+  color: var(--link);
   font-weight: 600;
 }
 </style>

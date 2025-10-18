@@ -122,7 +122,7 @@ const bucketProgress = computed(() => (completedBucket.value / bucketTotal.value
   height: 48px;
   border-radius: 50%;
   font-size: 1.6rem;
-  background: rgba(255, 255, 255, 0.3);
+  background: var(--calendar-nav-background);
 }
 
 .calendar-grid {
@@ -141,14 +141,14 @@ const bucketProgress = computed(() => (completedBucket.value / bucketTotal.value
   min-height: 140px;
   border-radius: 18px;
   padding: 0.75rem;
-  background: rgba(255, 255, 255, 0.05);
+  background: var(--calendar-cell-background);
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
 }
 
 .calendar-cell.today {
-  border: 1px solid rgba(255, 255, 255, 0.4);
+  border: 1px solid var(--calendar-cell-border);
 }
 
 .calendar-cell.other-month {
@@ -168,18 +168,18 @@ const bucketProgress = computed(() => (completedBucket.value / bucketTotal.value
 .plan-pill {
   border-radius: 12px;
   padding: 0.6rem;
-  background: rgba(255, 255, 255, 0.12);
+  background: var(--calendar-plan-background);
   display: flex;
   flex-direction: column;
   gap: 0.4rem;
 }
 
 .plan-pill[data-status='completed'] {
-  background: rgba(150, 242, 215, 0.28);
+  background: var(--calendar-plan-completed);
 }
 
 .plan-pill[data-status='in-progress'] {
-  background: rgba(255, 199, 255, 0.28);
+  background: var(--calendar-plan-progress);
 }
 
 .attachments {
@@ -204,14 +204,14 @@ const bucketProgress = computed(() => (completedBucket.value / bucketTotal.value
 .progress-bar {
   flex: 1;
   height: 10px;
-  background: rgba(255, 255, 255, 0.12);
+  background: var(--progress-bar-background);
   border-radius: 999px;
   overflow: hidden;
 }
 
 .progress-fill {
   height: 100%;
-  background: linear-gradient(135deg, #ffc7ff, #8ebdff);
+  background: var(--progress-fill);
 }
 
 .bucket-list {
@@ -228,11 +228,11 @@ const bucketProgress = computed(() => (completedBucket.value / bucketTotal.value
   gap: 0.75rem;
   padding: 0.8rem 1rem;
   border-radius: 16px;
-  background: rgba(255, 255, 255, 0.06);
+  background: var(--bucket-card-background);
 }
 
 .bucket-list li.completed {
-  background: rgba(150, 242, 215, 0.24);
+  background: var(--bucket-card-completed);
 }
 
 .order {

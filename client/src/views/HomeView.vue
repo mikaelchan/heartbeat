@@ -102,8 +102,8 @@ const formatDate = (value: string) => dayjs(value).format('YYYY 年 M 月 D 日'
 .pairing-notice strong {
   font-size: 1.6rem;
   letter-spacing: 0.25em;
-  color: #007aff;
-  text-shadow: 0 8px 16px rgba(0, 122, 255, 0.18);
+  color: var(--accent);
+  text-shadow: 0 8px 16px var(--accent-glow);
 }
 
 .hero {
@@ -115,14 +115,14 @@ const formatDate = (value: string) => dayjs(value).format('YYYY 年 M 月 D 日'
   overflow: hidden;
   padding: 1rem 1.25rem;
   border-radius: 28px;
-  background: rgba(255, 255, 255, 0.4);
+  background: var(--hero-surface);
 }
 
 .hero::after {
   content: '';
   position: absolute;
   inset: 0;
-  background: radial-gradient(circle at top left, rgba(255, 255, 255, 0.6), transparent 65%);
+  background: var(--hero-glow);
   pointer-events: none;
 }
 
@@ -147,9 +147,9 @@ const formatDate = (value: string) => dayjs(value).format('YYYY 年 M 月 D 日'
   width: 220px;
   height: 220px;
   border-radius: 50%;
-  background: radial-gradient(circle at 30% 30%, rgba(255, 255, 255, 0.9), rgba(99, 102, 241, 0.08));
+  background: radial-gradient(circle at 30% 30%, var(--orb-gradient-start), var(--orb-gradient-end));
   animation: float 6s ease-in-out infinite;
-  box-shadow: inset 0 0 60px rgba(255, 255, 255, 0.55), 0 18px 40px rgba(99, 102, 241, 0.2);
+  box-shadow: inset 0 0 60px var(--orb-inner-glow), 0 18px 40px var(--orb-outer-glow);
 }
 
 @keyframes float {
@@ -174,8 +174,8 @@ const formatDate = (value: string) => dayjs(value).format('YYYY 年 M 月 D 日'
 .milestones li {
   padding: 1.1rem 1.25rem;
   border-radius: 22px;
-  background: rgba(255, 255, 255, 0.5);
-  box-shadow: 0 16px 30px rgba(15, 23, 42, 0.08);
+  background: var(--milestone-surface);
+  box-shadow: var(--milestone-shadow);
 }
 
 .milestone-label {
