@@ -16,13 +16,16 @@
       </aside>
     </div>
   </section>
-  <section class="glass-panel" v-else>
+  <section class="glass-panel" v-else-if="isLoading">
     <p>正在为你加载那些心动瞬间...</p>
+  </section>
+  <section class="glass-panel" v-else>
+    <p>暂时还没有记录足迹，快去计划下一次冒险吧！</p>
   </section>
 </template>
 
 <script setup lang="ts">
-import { onMounted, watch } from 'vue';
+import { computed, onMounted, watch } from 'vue';
 import * as L from 'leaflet';
 import dayjs from 'dayjs';
 import { useHeartbeatStore } from '@/stores/heartbeat';
@@ -32,6 +35,7 @@ import 'leaflet/dist/leaflet.css';
 let map: L.Map | null = null;
 let markersLayer: L.LayerGroup | null = null;
 const store = useHeartbeatStore();
+const isLoading = computed(() => store.memoriesLoading);
 
 const formatDate = (value: string) => dayjs(value).format('YYYY 年 M 月 D 日');
 
@@ -62,7 +66,7 @@ const renderMap = () => {
 
 onMounted(async () => {
   if (!store.memories.length) {
-    await store.fetchAll();
+    await store.fetchMemories();
   }
   renderMap();
 });

@@ -169,14 +169,18 @@ nav a:active {
 .theme-toggle-button {
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   gap: 0.4rem;
-  padding: 0.5rem 1rem;
+  padding: 0.5rem 1.2rem;
+  min-height: 2.5rem;
   border-radius: 999px;
   background: var(--interactive-muted);
   color: var(--text-primary);
   font-weight: 600;
-  border: 1px solid transparent;
+  border: none;
+  cursor: pointer;
   box-shadow: none;
+  transition: background 0.2s ease, transform 0.2s ease;
 }
 
 .theme-toggle-button:hover {
@@ -204,6 +208,7 @@ nav a:active {
   justify-content: center;
   border-radius: 999px;
   padding: 0.5rem 1.2rem;
+  min-height: 2.5rem;
   border: none;
   font-weight: 600;
   cursor: pointer;

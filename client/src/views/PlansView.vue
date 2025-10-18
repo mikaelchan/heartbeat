@@ -57,8 +57,11 @@ const focusDate = ref(dayjs());
 const weekdays = ['日', '一', '二', '三', '四', '五', '六'];
 
 onMounted(async () => {
-  if (!store.plans.length || !store.bucket.length) {
-    await store.fetchAll();
+  if (!store.plans.length) {
+    await store.fetchPlans();
+  }
+  if (!store.bucket.length) {
+    await store.fetchBucket();
   }
 });
 

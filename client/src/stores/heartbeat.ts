@@ -1,17 +1,40 @@
 import { defineStore } from 'pinia';
 import axios from 'axios';
-import type { Relationship, Memory, Plan, BucketItem, Message } from '@/types';
+import type {
+  Relationship,
+  RelationshipSummary,
+  Memory,
+  Plan,
+  BucketItem,
+  Message,
+  Milestone,
+  PaginatedResult
+} from '@/types';
 import { useAuthStore } from './auth';
 import type { UserGender } from '@/types/auth';
 import { getPartnerName } from '@/utils/user';
 
+interface PaginationMeta {
+  page: number;
+  pageSize: number;
+  totalItems: number;
+  totalPages: number;
+}
+
 interface State {
-  relationship: Relationship | null;
+  relationshipSummary: RelationshipSummary | null;
+  milestones: Milestone[];
+  milestoneMeta: PaginationMeta;
+  milestoneLoading: boolean;
   memories: Memory[];
+  memoriesLoading: boolean;
   plans: Plan[];
+  plansLoading: boolean;
   bucket: BucketItem[];
+  bucketLoading: boolean;
   messages: Message[];
-  loading: boolean;
+  messageMeta: PaginationMeta;
+  messagesLoading: boolean;
 }
 
 const createFallbackRelationship = (username: string, gender: UserGender): Relationship => ({
@@ -82,8 +105,9 @@ const createFallbackData = () => {
   const authStore = useAuthStore();
   const username = authStore.user?.username ?? '我';
   const gender = authStore.user?.gender ?? 'other';
+  const relationship = createFallbackRelationship(username, gender);
   return {
-    relationship: createFallbackRelationship(username, gender),
+    relationship,
     memories: createFallbackMemories(username, gender),
     plans: createFallbackPlans(username, gender),
     bucket: createFallbackBucket(username, gender),
@@ -93,42 +117,187 @@ const createFallbackData = () => {
 
 export const useHeartbeatStore = defineStore('heartbeat', {
   state: (): State => ({
-    relationship: null,
+    relationshipSummary: null,
+    milestones: [],
+    milestoneMeta: { page: 1, pageSize: 5, totalItems: 0, totalPages: 1 },
+    milestoneLoading: false,
     memories: [],
+    memoriesLoading: false,
     plans: [],
+    plansLoading: false,
     bucket: [],
+    bucketLoading: false,
     messages: [],
-    loading: false
+    messageMeta: { page: 1, pageSize: 10, totalItems: 0, totalPages: 1 },
+    messagesLoading: false
   }),
   actions: {
-    async fetchAll() {
+    async fetchRelationshipSummary(force = false) {
       const authStore = useAuthStore();
-      if (!authStore.isAuthenticated || this.loading) {
+      if (!authStore.isAuthenticated) {
+        this.reset();
+        return;
+      }
+
+      if (this.relationshipSummary && !force) {
+        return;
+      }
+
+      const fallback = createFallbackData();
+      try {
+        const response = await axios.get<RelationshipSummary>('/api/relationship/summary');
+        this.relationshipSummary = response.data;
+      } catch (error) {
+        console.error('Failed to fetch relationship summary', error);
+        this.relationshipSummary = {
+          coupleNames: fallback.relationship.coupleNames,
+          startedOn: fallback.relationship.startedOn,
+          milestoneCount: fallback.relationship.milestones.length
+        };
+      }
+    },
+    async fetchMilestones(page = 1, pageSize = this.milestoneMeta.pageSize) {
+      const authStore = useAuthStore();
+      if (!authStore.isAuthenticated || this.milestoneLoading) {
         if (!authStore.isAuthenticated) {
           this.reset();
         }
         return;
       }
 
-      this.loading = true;
+      this.milestoneLoading = true;
       const fallback = createFallbackData();
       try {
-        const [relationshipRes, memoriesRes, plansRes, bucketRes, messagesRes] = await Promise.allSettled([
-          axios.get<Relationship>('/api/relationship'),
-          axios.get<Memory[]>('/api/memories'),
-          axios.get<Plan[]>('/api/plans'),
-          axios.get<BucketItem[]>('/api/bucket'),
-          axios.get<Message[]>('/api/messages')
-        ]);
-
-        this.relationship =
-          relationshipRes.status === 'fulfilled' ? relationshipRes.value.data : fallback.relationship;
-        this.memories = memoriesRes.status === 'fulfilled' ? memoriesRes.value.data : fallback.memories;
-        this.plans = plansRes.status === 'fulfilled' ? plansRes.value.data : fallback.plans;
-        this.bucket = bucketRes.status === 'fulfilled' ? bucketRes.value.data : fallback.bucket;
-        this.messages = messagesRes.status === 'fulfilled' ? messagesRes.value.data : fallback.messages;
+        const response = await axios.get<PaginatedResult<Milestone>>('/api/relationship/milestones', {
+          params: { page, pageSize }
+        });
+        this.milestones = response.data.items;
+        this.milestoneMeta = {
+          page: response.data.page,
+          pageSize: response.data.pageSize,
+          totalItems: response.data.totalItems,
+          totalPages: response.data.totalPages
+        };
+      } catch (error) {
+        console.error('Failed to fetch milestones', error);
+        const totalItems = fallback.relationship.milestones.length;
+        const totalPages = Math.max(1, Math.ceil(totalItems / pageSize));
+        const currentPage = Math.min(page, totalPages);
+        const start = (currentPage - 1) * pageSize;
+        this.milestones = fallback.relationship.milestones.slice(start, start + pageSize);
+        this.milestoneMeta = { page: currentPage, pageSize, totalItems, totalPages };
       } finally {
-        this.loading = false;
+        this.milestoneLoading = false;
+      }
+    },
+    async fetchMemories() {
+      const authStore = useAuthStore();
+      if (!authStore.isAuthenticated || this.memoriesLoading) {
+        if (!authStore.isAuthenticated) {
+          this.reset();
+        }
+        return;
+      }
+
+      this.memoriesLoading = true;
+      const fallback = createFallbackData();
+      try {
+        const response = await axios.get<Memory[]>('/api/memories');
+        this.memories = response.data;
+      } catch (error) {
+        console.error('Failed to fetch memories', error);
+        this.memories = fallback.memories;
+      } finally {
+        this.memoriesLoading = false;
+      }
+    },
+    async fetchPlans() {
+      const authStore = useAuthStore();
+      if (!authStore.isAuthenticated || this.plansLoading) {
+        if (!authStore.isAuthenticated) {
+          this.reset();
+        }
+        return;
+      }
+
+      this.plansLoading = true;
+      const fallback = createFallbackData();
+      try {
+        const response = await axios.get<Plan[]>('/api/plans');
+        this.plans = response.data;
+      } catch (error) {
+        console.error('Failed to fetch plans', error);
+        this.plans = fallback.plans;
+      } finally {
+        this.plansLoading = false;
+      }
+    },
+    async fetchBucket() {
+      const authStore = useAuthStore();
+      if (!authStore.isAuthenticated || this.bucketLoading) {
+        if (!authStore.isAuthenticated) {
+          this.reset();
+        }
+        return;
+      }
+
+      this.bucketLoading = true;
+      const fallback = createFallbackData();
+      try {
+        const response = await axios.get<BucketItem[]>('/api/bucket');
+        this.bucket = response.data;
+      } catch (error) {
+        console.error('Failed to fetch bucket list', error);
+        this.bucket = fallback.bucket;
+      } finally {
+        this.bucketLoading = false;
+      }
+    },
+    async fetchMessages(page = 1, pageSize = this.messageMeta.pageSize, { append = false } = {}) {
+      const authStore = useAuthStore();
+      if (!authStore.isAuthenticated || this.messagesLoading) {
+        if (!authStore.isAuthenticated) {
+          this.reset();
+        }
+        return;
+      }
+
+      this.messagesLoading = true;
+      const fallback = createFallbackData();
+      try {
+        const response = await axios.get<PaginatedResult<Message>>('/api/messages', {
+          params: { page, pageSize }
+        });
+        if (append && page > 1) {
+          const existingIds = new Set(this.messages.map((message) => message._id ?? message.createdAt));
+          this.messages = [
+            ...this.messages,
+            ...response.data.items.filter((item) => !existingIds.has(item._id ?? item.createdAt))
+          ];
+        } else {
+          this.messages = response.data.items;
+        }
+        this.messageMeta = {
+          page: response.data.page,
+          pageSize: response.data.pageSize,
+          totalItems: response.data.totalItems,
+          totalPages: response.data.totalPages
+        };
+      } catch (error) {
+        console.error('Failed to fetch messages', error);
+        const totalItems = fallback.messages.length;
+        const totalPages = Math.max(1, Math.ceil(totalItems / pageSize));
+        const currentPage = Math.min(page, totalPages);
+        const start = (currentPage - 1) * pageSize;
+        const fallbackItems = fallback.messages.slice(start, start + pageSize);
+        if (append && currentPage > 1) {
+          this.messages = [...this.messages, ...fallbackItems];
+        } else {
+          this.messages = fallbackItems;
+        }
+        this.messageMeta = { page: currentPage, pageSize, totalItems, totalPages };
+      } finally {
+        this.messagesLoading = false;
       }
     },
     async addMessage(author: Message['author'], content: string) {
@@ -142,14 +311,28 @@ export const useHeartbeatStore = defineStore('heartbeat', {
           createdAt: new Date().toISOString()
         };
         this.messages.unshift(optimisticMessage);
+      } finally {
+        this.messageMeta.totalItems += 1;
+        this.messageMeta.totalPages = Math.max(1, Math.ceil(this.messageMeta.totalItems / this.messageMeta.pageSize));
+        if (this.messages.length > this.messageMeta.pageSize) {
+          this.messages = this.messages.slice(0, this.messageMeta.pageSize);
+        }
       }
     },
     reset() {
-      this.relationship = null;
+      this.relationshipSummary = null;
+      this.milestones = [];
+      this.milestoneMeta = { page: 1, pageSize: 5, totalItems: 0, totalPages: 1 };
+      this.milestoneLoading = false;
       this.memories = [];
       this.plans = [];
+      this.plansLoading = false;
       this.bucket = [];
+      this.bucketLoading = false;
       this.messages = [];
+      this.messageMeta = { page: 1, pageSize: 10, totalItems: 0, totalPages: 1 };
+      this.messagesLoading = false;
+      this.memoriesLoading = false;
     }
   }
 });

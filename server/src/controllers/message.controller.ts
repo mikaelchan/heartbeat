@@ -4,10 +4,21 @@ import prisma from '../lib/prisma.js';
 import type { AuthenticatedRequest } from '../middleware/auth.middleware.js';
 import { findRelationshipForUser } from '../utils/relationship.js';
 
-const mapMessage = ({ id, relationshipId: _relationshipId, ...rest }: MessageModel) => ({
-  ...rest,
-  _id: id
-});
+const mapMessage = ({ id, relationshipId, ...rest }: MessageModel) => {
+  void relationshipId;
+  return {
+    ...rest,
+    _id: id
+  };
+};
+
+const parsePositiveInteger = (value: unknown, fallback: number) => {
+  const parsed = Number.parseInt(String(value ?? ''), 10);
+  if (Number.isNaN(parsed) || parsed <= 0) {
+    return fallback;
+  }
+  return parsed;
+};
 
 export const listMessages = async (req: Request, res: Response) => {
   const { user } = req as AuthenticatedRequest;
@@ -20,11 +31,27 @@ export const listMessages = async (req: Request, res: Response) => {
     return res.status(404).json({ message: 'Relationship not configured yet.' });
   }
 
+  const requestedPage = parsePositiveInteger(req.query.page, 1);
+  const pageSize = parsePositiveInteger(req.query.pageSize, 10);
+
+  const totalItems = await prisma.message.count({ where: { relationshipId: relationship.id } });
+  const totalPages = Math.max(1, Math.ceil(totalItems / pageSize));
+  const currentPage = Math.min(requestedPage, totalPages);
+
   const messages = await prisma.message.findMany({
     where: { relationshipId: relationship.id },
-    orderBy: { createdAt: 'desc' }
+    orderBy: { createdAt: 'desc' },
+    skip: (currentPage - 1) * pageSize,
+    take: pageSize
   });
-  return res.json(messages.map(mapMessage));
+
+  return res.json({
+    items: messages.map(mapMessage),
+    page: currentPage,
+    pageSize,
+    totalItems,
+    totalPages
+  });
 };
 
 export const createMessage = async (req: Request, res: Response) => {
