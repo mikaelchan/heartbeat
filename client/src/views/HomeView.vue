@@ -96,11 +96,14 @@ const formatDate = (value: string) => dayjs(value).format('YYYY 年 M 月 D 日'
 .pairing-notice h3 {
   margin: 0;
   font-size: 1.4rem;
+  letter-spacing: -0.01em;
 }
 
 .pairing-notice strong {
   font-size: 1.6rem;
-  letter-spacing: 0.2em;
+  letter-spacing: 0.25em;
+  color: #007aff;
+  text-shadow: 0 8px 16px rgba(0, 122, 255, 0.18);
 }
 
 .hero {
@@ -110,31 +113,43 @@ const formatDate = (value: string) => dayjs(value).format('YYYY 年 M 月 D 日'
   gap: 2rem;
   position: relative;
   overflow: hidden;
+  padding: 1rem 1.25rem;
+  border-radius: 28px;
+  background: rgba(255, 255, 255, 0.4);
+}
+
+.hero::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at top left, rgba(255, 255, 255, 0.6), transparent 65%);
+  pointer-events: none;
 }
 
 .tag {
-  letter-spacing: 0.1em;
+  letter-spacing: 0.08em;
   text-transform: uppercase;
-  opacity: 0.75;
+  color: var(--text-secondary);
+  font-size: 0.85rem;
 }
 
 .duration {
-  font-size: clamp(2.6rem, 5vw, 4.4rem);
-  margin: 0.5rem 0 1rem;
+  font-size: clamp(2.8rem, 5vw, 4.8rem);
+  margin: 0.5rem 0 1.25rem;
 }
 
 .started {
-  font-size: 1.1rem;
-  opacity: 0.85;
+  font-size: 1.05rem;
+  color: var(--text-secondary);
 }
 
 .floating-orb {
   width: 220px;
   height: 220px;
   border-radius: 50%;
-  background: radial-gradient(circle at 30% 30%, rgba(255, 255, 255, 0.8), rgba(123, 161, 255, 0.05));
+  background: radial-gradient(circle at 30% 30%, rgba(255, 255, 255, 0.9), rgba(99, 102, 241, 0.08));
   animation: float 6s ease-in-out infinite;
-  box-shadow: inset 0 0 60px rgba(255, 255, 255, 0.5);
+  box-shadow: inset 0 0 60px rgba(255, 255, 255, 0.55), 0 18px 40px rgba(99, 102, 241, 0.2);
 }
 
 @keyframes float {
@@ -156,12 +171,32 @@ const formatDate = (value: string) => dayjs(value).format('YYYY 年 M 月 D 日'
   gap: 1.25rem;
 }
 
+.milestones li {
+  padding: 1.1rem 1.25rem;
+  border-radius: 22px;
+  background: rgba(255, 255, 255, 0.5);
+  box-shadow: 0 16px 30px rgba(15, 23, 42, 0.08);
+}
+
 .milestone-label {
   font-weight: 600;
   display: block;
+  margin-bottom: 0.35rem;
 }
 
 .milestone-date {
-  opacity: 0.8;
+  color: var(--text-secondary);
+}
+
+@media (max-width: 768px) {
+  .hero {
+    flex-direction: column;
+    text-align: center;
+  }
+
+  .floating-orb {
+    width: 180px;
+    height: 180px;
+  }
 }
 </style>

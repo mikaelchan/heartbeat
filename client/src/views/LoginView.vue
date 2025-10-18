@@ -53,13 +53,19 @@ const handleSubmit = async () => {
   max-width: 420px;
   margin: 4rem auto;
   text-align: center;
+  backdrop-filter: blur(28px) saturate(150%);
+}
+
+.sub {
+  margin: 0.25rem 0 0;
+  color: var(--text-secondary);
 }
 
 .auth-form {
   display: flex;
   flex-direction: column;
-  gap: 1rem;
-  margin-top: 2rem;
+  gap: 1.1rem;
+  margin-top: 2.2rem;
 }
 
 .auth-form label {
@@ -67,23 +73,49 @@ const handleSubmit = async () => {
   font-weight: 600;
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
+  gap: 0.45rem;
+  color: #0f172a;
 }
 
 .auth-form input {
-  border-radius: 12px;
-  border: none;
-  padding: 0.75rem 1rem;
-  background: rgba(255, 255, 255, 0.12);
+  border-radius: 16px;
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  padding: 0.85rem 1.1rem;
+  background: rgba(255, 255, 255, 0.95);
   color: inherit;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.6);
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.auth-form input:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-soft);
+}
+
+.auth-form button[type='submit'] {
+  margin-top: 0.5rem;
+  background: linear-gradient(135deg, #007aff 0%, #5f5cff 100%);
+  color: #ffffff;
+  box-shadow: 0 18px 32px rgba(0, 122, 255, 0.24);
+}
+
+.auth-form button[type='submit']:hover:not(:disabled) {
+  background: linear-gradient(135deg, #0066d6 0%, #4f46e5 100%);
 }
 
 .error {
-  color: #ff8b8b;
+  color: #ff5d5d;
   margin: 0;
 }
 
 .switch {
-  margin-top: 1.5rem;
+  margin-top: 1.75rem;
+  color: var(--text-secondary);
+}
+
+.switch a {
+  color: #007aff;
+  font-weight: 600;
 }
 </style>

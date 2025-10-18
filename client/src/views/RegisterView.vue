@@ -162,16 +162,22 @@ const handleSubmit = async () => {
 
 <style scoped>
 .auth-panel {
-  max-width: 480px;
+  max-width: 520px;
   margin: 4rem auto;
   text-align: center;
+  backdrop-filter: blur(28px) saturate(150%);
+}
+
+.sub {
+  margin: 0.25rem 0 0;
+  color: var(--text-secondary);
 }
 
 .auth-form {
   display: flex;
   flex-direction: column;
-  gap: 1.5rem;
-  margin-top: 2rem;
+  gap: 1.4rem;
+  margin-top: 2.4rem;
 }
 
 .auth-form label {
@@ -180,14 +186,23 @@ const handleSubmit = async () => {
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
+  color: #0f172a;
 }
 
 .auth-form input {
-  border-radius: 12px;
-  border: none;
-  padding: 0.75rem 1rem;
-  background: rgba(255, 255, 255, 0.12);
+  border-radius: 16px;
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  padding: 0.85rem 1.1rem;
+  background: rgba(255, 255, 255, 0.95);
   color: inherit;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.6);
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.auth-form input:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-soft);
 }
 
 .field-group {
@@ -195,6 +210,7 @@ const handleSubmit = async () => {
   display: flex;
   flex-direction: column;
   gap: 0.75rem;
+  color: #0f172a;
 }
 
 .field-label {
@@ -204,7 +220,20 @@ const handleSubmit = async () => {
 .mode-toggle {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 0.75rem;
+  background: rgba(15, 23, 42, 0.06);
+  border-radius: 999px;
+  padding: 0.35rem;
+  position: relative;
+  gap: 0.35rem;
+}
+
+.mode-toggle::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  box-shadow: inset 0 0 0 1px rgba(15, 23, 42, 0.05);
+  pointer-events: none;
 }
 
 .mode-toggle button {
@@ -213,58 +242,72 @@ const handleSubmit = async () => {
   padding: 0.6rem 1rem;
   font-weight: 600;
   cursor: pointer;
-  background: rgba(255, 255, 255, 0.16);
-  color: inherit;
-  transition: background 0.2s ease, transform 0.2s ease;
+  background: transparent;
+  color: var(--text-secondary);
+  transition: color 0.2s ease, transform 0.2s ease;
+  position: relative;
+  z-index: 1;
 }
 
 .mode-toggle button.active {
-  background: rgba(255, 255, 255, 0.6);
-  color: #091234;
-  transform: translateY(-2px);
+  color: #0f172a;
+}
+
+.mode-toggle button.active::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: #ffffff;
+  box-shadow: 0 12px 24px rgba(59, 130, 246, 0.18);
+  z-index: -1;
+}
+
+.mode-toggle button:active {
+  transform: scale(0.97);
 }
 
 .hint {
   margin: 0;
   font-size: 0.85rem;
-  opacity: 0.75;
+  color: var(--text-secondary);
 }
 
 .gender-slider {
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
+  gap: 0.6rem;
 }
 
 .gender-slider input[type='range'] {
   -webkit-appearance: none;
   appearance: none;
   width: 100%;
-  height: 6px;
+  height: 7px;
   border-radius: 999px;
-  background: rgba(255, 255, 255, 0.2);
+  background: rgba(15, 23, 42, 0.08);
 }
 
 .gender-slider input[type='range']::-webkit-slider-thumb {
   -webkit-appearance: none;
   appearance: none;
-  width: 24px;
-  height: 24px;
+  width: 26px;
+  height: 26px;
   border-radius: 50%;
   background: #ffffff;
-  border: 2px solid rgba(9, 18, 52, 0.12);
+  border: 2px solid rgba(15, 23, 42, 0.12);
   cursor: pointer;
-  box-shadow: 0 4px 12px rgba(9, 18, 52, 0.25);
+  box-shadow: 0 6px 14px rgba(15, 23, 42, 0.15);
 }
 
 .gender-slider input[type='range']::-moz-range-thumb {
-  width: 24px;
-  height: 24px;
+  width: 26px;
+  height: 26px;
   border-radius: 50%;
   background: #ffffff;
-  border: 2px solid rgba(9, 18, 52, 0.12);
+  border: 2px solid rgba(15, 23, 42, 0.12);
   cursor: pointer;
-  box-shadow: 0 4px 12px rgba(9, 18, 52, 0.25);
+  box-shadow: 0 6px 14px rgba(15, 23, 42, 0.15);
 }
 
 .slider-labels {
@@ -276,36 +319,45 @@ const handleSubmit = async () => {
 .slider-labels span {
   flex: 1;
   text-align: center;
-  opacity: 0.6;
+  opacity: 0.55;
   font-weight: 600;
+  color: var(--text-secondary);
 }
 
 .slider-labels span.active {
   opacity: 1;
-  color: #ffffff;
+  color: #0f172a;
 }
 
 .auth-form button[type='submit'] {
   border-radius: 999px;
   border: none;
-  padding: 0.75rem 1rem;
+  padding: 0.85rem 1.1rem;
   font-weight: 700;
   cursor: pointer;
-  background: rgba(255, 255, 255, 0.7);
-  color: #091234;
+  background: linear-gradient(135deg, #007aff 0%, #5f5cff 100%);
+  color: #ffffff;
+  box-shadow: 0 20px 36px rgba(0, 122, 255, 0.22);
   transition: transform 0.2s ease;
 }
 
 .auth-form button[type='submit']:hover:not(:disabled) {
   transform: translateY(-1px);
+  background: linear-gradient(135deg, #0066d6 0%, #4f46e5 100%);
 }
 
 .error {
-  color: #ff8b8b;
+  color: #ff5d5d;
   margin: 0;
 }
 
 .switch {
-  margin-top: 1.5rem;
+  margin-top: 1.75rem;
+  color: var(--text-secondary);
+}
+
+.switch a {
+  color: #007aff;
+  font-weight: 600;
 }
 </style>
