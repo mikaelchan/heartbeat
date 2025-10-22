@@ -61,6 +61,22 @@
           :key="item._id ?? item.order"
           :class="{ completed: item.completed }"
         >
+          <button
+            v-if="!item.completed"
+            type="button"
+            class="bucket-status-badge mark-complete"
+            @click.stop="openBucketCompletionDialog(item)"
+          >
+            记录完成
+          </button>
+          <button
+            v-else
+            type="button"
+            class="bucket-status-badge ghost"
+            @click.stop="markBucketIncomplete(item)"
+          >
+            标记为未完成
+          </button>
           <div class="bucket-content">
             <span class="order">#{{ item.order.toString().padStart(2, '0') }}</span>
             <div class="bucket-text">
@@ -69,24 +85,6 @@
                 完成于 {{ formatDisplayDate(item.completedOn) }}
               </span>
             </div>
-          </div>
-          <div class="bucket-actions">
-            <button
-              v-if="!item.completed"
-              type="button"
-              class="mark-complete"
-              @click="openBucketCompletionDialog(item)"
-            >
-              记录完成
-            </button>
-            <button
-              v-else
-              type="button"
-              class="ghost"
-              @click="markBucketIncomplete(item)"
-            >
-              标记为未完成
-            </button>
           </div>
           <div v-if="item.completed && item.photoUrl" class="bucket-thumbnail">
             <img :src="item.photoUrl" :alt="item.title" />
@@ -598,13 +596,13 @@ const submitBucketCreate = async () => {
 }
 
 .bucket-list li {
-  display: grid;
-  grid-template-columns: 1fr auto auto;
+  position: relative;
+  display: flex;
+  align-items: center;
   gap: 0.75rem;
-  padding: 0.8rem 1rem;
+  padding: 1.35rem 2.75rem 1rem 1rem;
   border-radius: 16px;
   background: var(--bucket-card-background);
-  align-items: center;
 }
 
 .bucket-list li.completed {
@@ -615,6 +613,7 @@ const submitBucketCreate = async () => {
   display: flex;
   align-items: center;
   gap: 0.75rem;
+  flex: 1;
 }
 
 .order {
@@ -637,30 +636,40 @@ const submitBucketCreate = async () => {
   color: var(--text-secondary);
 }
 
-.bucket-actions {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-}
-
-.bucket-actions .ghost,
-.bucket-actions .mark-complete {
+.bucket-status-badge {
+  position: absolute;
+  top: 0.6rem;
+  right: 0.75rem;
   border-radius: 999px;
-  padding: 0.35rem 0.9rem;
+  padding: 0.35rem 0.85rem;
   font-weight: 600;
+  font-size: 0.85rem;
   border: 1px solid transparent;
   background: var(--interactive-muted);
   color: var(--text-primary);
+  box-shadow: var(--shadow-card);
+  cursor: pointer;
 }
 
-.bucket-actions .mark-complete {
+.bucket-status-badge.mark-complete {
   background: var(--calendar-plan-upcoming);
   color: #0f172a;
 }
 
-.bucket-actions .ghost {
-  background: transparent;
+.bucket-status-badge.ghost {
+  background: rgba(255, 255, 255, 0.12);
   border-color: var(--dialog-ghost-border);
+  color: var(--text-secondary);
+  box-shadow: none;
+}
+
+.bucket-status-badge:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.bucket-status-badge:active {
+  transform: translateY(1px);
 }
 
 .bucket-thumbnail {
@@ -669,6 +678,7 @@ const submitBucketCreate = async () => {
   border-radius: 12px;
   overflow: hidden;
   box-shadow: var(--shadow-card);
+  margin-left: auto;
 }
 
 .bucket-thumbnail img {

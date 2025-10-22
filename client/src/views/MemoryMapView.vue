@@ -101,6 +101,7 @@ import dayjs from 'dayjs';
 import { useHeartbeatStore } from '@/stores/heartbeat';
 import { readFileAsDataUrl } from '@/utils/file';
 import { uploadImage } from '@/utils/upload';
+import type { Memory } from '@/types';
 
 import 'leaflet/dist/leaflet.css';
 
@@ -135,6 +136,48 @@ const placeError = ref('');
 
 const formatDate = (value: string) => dayjs(value).format('YYYY 年 M 月 D 日');
 
+const escapeHtml = (value: string) =>
+  value
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+
+const createMarkerIcon = (memory: Memory) => {
+  if (memory.photoUrl) {
+    const safePhoto = escapeHtml(memory.photoUrl);
+    const safeTitle = escapeHtml(memory.title);
+    return L.divIcon({
+      className: 'memory-marker memory-marker--photo',
+      html: `<div class="memory-marker-thumb"><img src="${safePhoto}" alt="${safeTitle}" /></div>`,
+      iconSize: [56, 64],
+      iconAnchor: [28, 56],
+      popupAnchor: [0, -52]
+    });
+  }
+
+  return L.divIcon({
+    className: 'memory-marker memory-marker--default',
+    html: '<div class="memory-marker-pin">📍</div>',
+    iconSize: [40, 48],
+    iconAnchor: [20, 40],
+    popupAnchor: [0, -36]
+  });
+};
+
+const createMarkerPopup = (memory: Memory) => {
+  const safeTitle = escapeHtml(memory.title);
+  const safePlace = escapeHtml(memory.location.placeName);
+  const safeDate = escapeHtml(formatDate(memory.happenedOn));
+  const description = memory.description ? `<p>${escapeHtml(memory.description)}</p>` : '';
+  const photo = memory.photoUrl
+    ? `<div class="memory-popup-thumb"><img src="${escapeHtml(memory.photoUrl)}" alt="${safeTitle}" /></div>`
+    : '';
+
+  return `<div class="memory-popup">${photo}<strong>${safeTitle}</strong><br /><span>${safePlace}</span><br /><small>${safeDate}</small>${description}</div>`;
+};
+
 const renderMap = async () => {
   if (!store.memories.length) {
     if (map) {
@@ -164,9 +207,11 @@ const renderMap = async () => {
   }
 
   store.memories.forEach((memory) => {
-    L.marker([memory.location.lat, memory.location.lng])
-      .bindPopup(`<strong>${memory.title}</strong><br>${memory.location.placeName}`)
-      .addTo(markersLayer as L.LayerGroup);
+    const marker = L.marker([memory.location.lat, memory.location.lng], {
+      icon: createMarkerIcon(memory)
+    }).bindPopup(createMarkerPopup(memory));
+
+    (markersLayer as L.LayerGroup).addLayer(marker);
   });
 };
 
@@ -622,6 +667,67 @@ const submitMemory = async () => {
   background: transparent;
   border: 1px solid var(--dialog-ghost-border);
   color: inherit;
+}
+
+:deep(.memory-marker) {
+  background: transparent;
+  border: none;
+  box-shadow: none;
+}
+
+:deep(.memory-marker-thumb) {
+  width: 56px;
+  height: 56px;
+  border-radius: 18px;
+  overflow: hidden;
+  box-shadow: 0 12px 24px rgba(15, 23, 42, 0.25);
+  border: 3px solid #fff;
+  background: #fff;
+}
+
+:deep(.memory-marker-thumb img) {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+:deep(.memory-marker-pin) {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 48px;
+  border-radius: 18px;
+  background: var(--accent);
+  color: #fff;
+  font-size: 1.25rem;
+  box-shadow: 0 10px 20px rgba(255, 105, 180, 0.25);
+}
+
+:deep(.memory-popup) {
+  display: grid;
+  gap: 0.35rem;
+  max-width: 220px;
+}
+
+:deep(.memory-popup-thumb) {
+  width: 100%;
+  max-height: 120px;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 10px 20px rgba(15, 23, 42, 0.2);
+}
+
+:deep(.memory-popup-thumb img) {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+:deep(.memory-popup p) {
+  margin: 0;
+  font-size: 0.85rem;
+  color: var(--text-primary);
 }
 
 @media (max-width: 980px) {
