@@ -18,6 +18,21 @@
   </section>
   <section class="glass-panel home-section" v-if="relationship">
     <h3 class="section-title">重要时刻</h3>
+    <form class="milestone-form" @submit.prevent="submitMilestone">
+      <div class="field-group">
+        <label>
+          时刻名称
+          <input v-model="newMilestone.label" type="text" placeholder="写下新的里程碑..." required />
+        </label>
+        <label>
+          日期
+          <input v-model="newMilestone.date" type="date" required />
+        </label>
+      </div>
+      <button type="submit" :disabled="!canSubmitMilestone || milestoneSubmitting">
+        {{ milestoneSubmitting ? '记录中...' : '记录这个瞬间' }}
+      </button>
+    </form>
     <div v-if="milestoneLoading" class="milestones-loading">正在加载...</div>
     <template v-else>
       <ul v-if="milestones.length" class="milestones">
@@ -79,6 +94,8 @@ const hasPartner = computed(() => Boolean(auth.user?.partnerId));
 const milestones = computed(() => store.milestones);
 const milestoneMeta = computed(() => store.milestoneMeta);
 const milestoneLoading = computed(() => store.milestoneLoading);
+const milestoneSubmitting = ref(false);
+const newMilestone = ref({ label: '', date: '' });
 
 const formattedStart = computed(() =>
   relationship.value ? dayjs(relationship.value.startedOn).format('YYYY 年 M 月 D 日') : ''
@@ -94,13 +111,6 @@ const durationDisplay = computed(() => {
   const minutes = diff.minutes();
   const seconds = diff.seconds();
   return `${years} 年 ${months} 个月 ${days} 天 ${hours} 小时 ${minutes} 分 ${seconds} 秒`;
-});
-
-const growthProgress = computed(() => {
-  if (!relationship.value) return 0;
-  const diff = dayjs.duration(now.value.diff(dayjs(relationship.value.startedOn)));
-  const years = diff.asYears();
-  return Math.min(Math.max(years / 5, 0), 1);
 });
 
 const canGoPrev = computed(
@@ -120,6 +130,16 @@ const changeMilestonePage = async (page: number) => {
 };
 
 const formatDate = (value: string) => dayjs(value).format('YYYY 年 M 月 D 日');
+
+const canSubmitMilestone = computed(() => newMilestone.value.label.trim() && newMilestone.value.date);
+
+const submitMilestone = async () => {
+  if (!canSubmitMilestone.value || milestoneSubmitting.value) return;
+  milestoneSubmitting.value = true;
+  await store.addMilestone(newMilestone.value.label, newMilestone.value.date);
+  newMilestone.value = { label: '', date: '' };
+  milestoneSubmitting.value = false;
+};
 </script>
 
 <style scoped>
@@ -233,10 +253,51 @@ const formatDate = (value: string) => dayjs(value).format('YYYY 年 M 月 D 日'
   color: var(--text-secondary);
 }
 
+.milestone-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+  padding: 1.1rem 1.25rem;
+  border-radius: 20px;
+  background: var(--milestone-form-surface, rgba(255, 255, 255, 0.12));
+  box-shadow: var(--milestone-shadow);
+}
+
+.field-group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.field-group label {
+  flex: 1 1 220px;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  font-weight: 600;
+}
+
+.field-group input {
+  padding: 0.65rem 0.85rem;
+  border-radius: 12px;
+  border: none;
+  background: var(--milestone-field-surface, rgba(255, 255, 255, 0.08));
+  color: inherit;
+}
+
+.milestone-form button {
+  align-self: flex-end;
+}
+
 @media (max-width: 768px) {
   .hero {
     flex-direction: column;
     text-align: center;
+  }
+
+  .milestone-form {
+    padding: 1rem;
   }
 }
 </style>
