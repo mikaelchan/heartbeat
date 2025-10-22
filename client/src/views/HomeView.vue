@@ -19,9 +19,6 @@
   <section class="glass-panel home-section" v-if="relationship">
     <div class="milestone-header">
       <h3 class="section-title">重要时刻</h3>
-      <button type="button" class="add-milestone-button" @click="openMilestoneDialog">
-        记录新的瞬间
-      </button>
     </div>
     <div v-if="milestoneLoading" class="milestones-loading">正在加载...</div>
     <template v-else>
@@ -302,24 +299,9 @@ const submitMilestone = async () => {
 .milestone-header {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: flex-start;
   gap: 1rem;
   margin-bottom: 1.25rem;
-}
-
-.add-milestone-button {
-  padding: 0.55rem 1.1rem;
-  border-radius: 999px;
-  border: none;
-  font-weight: 600;
-  background: var(--accent);
-  color: #fff;
-  box-shadow: 0 10px 24px rgba(255, 105, 180, 0.25);
-  cursor: pointer;
-}
-
-.add-milestone-button:hover {
-  filter: brightness(1.05);
 }
 
 .milestones {
@@ -354,14 +336,14 @@ const submitMilestone = async () => {
   align-items: center;
   justify-content: center;
   gap: 0.65rem;
-  border: 2px dashed rgba(255, 255, 255, 0.35);
-  background: rgba(255, 255, 255, 0.08);
+  border: 2px dashed var(--dialog-ghost-border);
+  background: var(--interactive-muted);
   color: var(--text-secondary);
 }
 
 .milestone-card.add-card:hover {
-  border-color: rgba(255, 255, 255, 0.6);
-  color: #fff;
+  border-color: var(--accent);
+  background: var(--interactive-muted-hover);
 }
 
 .add-icon {
@@ -427,7 +409,7 @@ const submitMilestone = async () => {
 .milestone-dialog-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(13, 16, 28, 0.68);
+  background: var(--dialog-overlay);
   display: grid;
   place-items: center;
   padding: 1.5rem;
@@ -435,14 +417,16 @@ const submitMilestone = async () => {
 }
 
 .milestone-dialog {
-  background: var(--panel-surface, rgba(25, 33, 59, 0.95));
+  background: var(--dialog-surface);
   border-radius: 24px;
   padding: 2rem;
   width: min(420px, 100%);
   display: flex;
   flex-direction: column;
   gap: 1rem;
-  box-shadow: 0 24px 48px rgba(0, 0, 0, 0.35);
+  box-shadow: 0 24px 48px rgba(15, 23, 42, 0.18);
+  border: 1px solid var(--dialog-border);
+  color: var(--text-primary);
 }
 
 .milestone-dialog h4 {
@@ -460,16 +444,15 @@ const submitMilestone = async () => {
 .milestone-dialog input[type='date'],
 .milestone-dialog input[type='file'] {
   border-radius: 12px;
-  border: none;
+  border: 1px solid var(--dialog-input-border);
   padding: 0.65rem 0.85rem;
-  background: rgba(255, 255, 255, 0.08);
+  background: var(--dialog-input-background);
   color: inherit;
   font-family: inherit;
 }
 
 .milestone-dialog input[type='file'] {
   padding: 0.45rem 0.85rem;
-  background: rgba(255, 255, 255, 0.05);
 }
 
 .milestone-image-preview {
@@ -511,7 +494,7 @@ const submitMilestone = async () => {
 
 .dialog-actions .ghost {
   background: transparent;
-  border: 1px solid rgba(255, 255, 255, 0.35);
+  border: 1px solid var(--dialog-ghost-border);
   color: inherit;
 }
 

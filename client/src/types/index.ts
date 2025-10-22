@@ -41,7 +41,8 @@ export interface Plan {
   _id?: string;
   title: string;
   description: string;
-  scheduledOn: string;
+  scheduledOn?: string;
+  completedOn?: string;
   attachments?: string[];
   status: 'upcoming' | 'completed' | 'in-progress';
 }
@@ -51,6 +52,8 @@ export interface BucketItem {
   order: number;
   title: string;
   completed: boolean;
+  completedOn?: string;
+  photoUrl?: string;
 }
 
 export interface Message {
