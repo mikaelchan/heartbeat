@@ -17,33 +17,32 @@
     </div>
   </section>
   <section class="glass-panel home-section" v-if="relationship">
-    <h3 class="section-title">重要时刻</h3>
-    <form class="milestone-form" @submit.prevent="submitMilestone">
-      <div class="field-group">
-        <label>
-          时刻名称
-          <input v-model="newMilestone.label" type="text" placeholder="写下新的里程碑..." required />
-        </label>
-        <label>
-          日期
-          <input v-model="newMilestone.date" type="date" required />
-        </label>
-      </div>
-      <button type="submit" :disabled="!canSubmitMilestone || milestoneSubmitting">
-        {{ milestoneSubmitting ? '记录中...' : '记录这个瞬间' }}
+    <div class="milestone-header">
+      <h3 class="section-title">重要时刻</h3>
+      <button type="button" class="add-milestone-button" @click="openMilestoneDialog">
+        记录新的瞬间
       </button>
-    </form>
+    </div>
     <div v-if="milestoneLoading" class="milestones-loading">正在加载...</div>
     <template v-else>
-      <ul v-if="milestones.length" class="milestones">
-        <li v-for="milestone in milestones" :key="milestone.label">
-          <span class="milestone-label">{{ milestone.label }}</span>
-          <span class="milestone-date">{{ formatDate(milestone.date) }}</span>
+      <ul class="milestones">
+        <li class="milestone-card add-card" @click="openMilestoneDialog">
+          <span class="add-icon">＋</span>
+          <p>记录新的瞬间</p>
+        </li>
+        <li v-for="milestone in milestones" :key="milestone.label" class="milestone-card">
+          <div v-if="milestone.imageUrl" class="milestone-image">
+            <img :src="milestone.imageUrl" :alt="milestone.label" />
+          </div>
+          <div class="milestone-content">
+            <span class="milestone-label">{{ milestone.label }}</span>
+            <span class="milestone-date">{{ formatDate(milestone.date) }}</span>
+          </div>
         </li>
       </ul>
-      <p v-else class="empty-hint">还没有记录重要时刻，去创造一个专属的回忆吧。</p>
+      <p v-if="!milestones.length" class="empty-hint">还没有记录重要时刻，去创造一个专属的回忆吧。</p>
     </template>
-    <div class="milestone-pagination">
+    <div v-if="milestoneMeta.totalPages > 1" class="milestone-pagination">
       <button type="button" @click="changeMilestonePage(milestoneMeta.page - 1)" :disabled="!canGoPrev">
         上一页
       </button>
@@ -56,15 +55,48 @@
   <section class="glass-panel home-section" v-else>
     <p>加载中...</p>
   </section>
+  <div v-if="showMilestoneDialog" class="milestone-dialog-overlay" @click.self="closeMilestoneDialog">
+    <form class="milestone-dialog" @submit.prevent="submitMilestone">
+      <h4>记录新的重要时刻</h4>
+      <label>
+        时刻名称
+        <input v-model="newMilestone.label" type="text" placeholder="写下新的里程碑..." required />
+      </label>
+      <label>
+        日期
+        <input v-model="newMilestone.date" type="date" required />
+      </label>
+      <label>
+        上传照片
+        <input
+          ref="milestoneFileInput"
+          type="file"
+          accept="image/*"
+          @change="onMilestoneFileChange"
+        />
+      </label>
+      <div v-if="newMilestone.imagePreview" class="milestone-image-preview">
+        <img :src="newMilestone.imagePreview" alt="预览" />
+        <button type="button" class="remove-image" @click="removeMilestoneImage">移除图片</button>
+      </div>
+      <div class="dialog-actions">
+        <button type="button" class="ghost" @click="closeMilestoneDialog">取消</button>
+        <button type="submit" :disabled="!canSubmitMilestone || milestoneSubmitting">
+          {{ milestoneSubmitting ? '记录中...' : '确定' }}
+        </button>
+      </div>
+    </form>
+  </div>
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, onUnmounted, ref } from 'vue';
+import { computed, onMounted, onUnmounted, reactive, ref } from 'vue';
 import dayjs from 'dayjs';
 import duration from 'dayjs/plugin/duration';
 import relativeTime from 'dayjs/plugin/relativeTime';
 import { useHeartbeatStore } from '@/stores/heartbeat';
 import { useAuthStore } from '@/stores/auth';
+import { readFileAsDataUrl } from '@/utils/file';
 
 dayjs.extend(duration);
 dayjs.extend(relativeTime);
@@ -95,7 +127,14 @@ const milestones = computed(() => store.milestones);
 const milestoneMeta = computed(() => store.milestoneMeta);
 const milestoneLoading = computed(() => store.milestoneLoading);
 const milestoneSubmitting = ref(false);
-const newMilestone = ref({ label: '', date: '' });
+const showMilestoneDialog = ref(false);
+const newMilestone = reactive({
+  label: '',
+  date: '',
+  imageFile: null as File | null,
+  imagePreview: ''
+});
+const milestoneFileInput = ref<HTMLInputElement | null>(null);
 
 const formattedStart = computed(() =>
   relationship.value ? dayjs(relationship.value.startedOn).format('YYYY 年 M 月 D 日') : ''
@@ -131,14 +170,70 @@ const changeMilestonePage = async (page: number) => {
 
 const formatDate = (value: string) => dayjs(value).format('YYYY 年 M 月 D 日');
 
-const canSubmitMilestone = computed(() => newMilestone.value.label.trim() && newMilestone.value.date);
+const resetMilestoneForm = () => {
+  newMilestone.label = '';
+  newMilestone.date = '';
+  newMilestone.imageFile = null;
+  newMilestone.imagePreview = '';
+  if (milestoneFileInput.value) {
+    milestoneFileInput.value.value = '';
+  }
+};
+
+const openMilestoneDialog = () => {
+  resetMilestoneForm();
+  showMilestoneDialog.value = true;
+};
+
+const closeMilestoneDialog = () => {
+  showMilestoneDialog.value = false;
+  resetMilestoneForm();
+};
+
+const onMilestoneFileChange = async (event: Event) => {
+  const input = event.target as HTMLInputElement;
+  const file = input.files?.[0];
+  if (!file) {
+    newMilestone.imageFile = null;
+    newMilestone.imagePreview = '';
+    return;
+  }
+
+  newMilestone.imageFile = file;
+  try {
+    newMilestone.imagePreview = await readFileAsDataUrl(file);
+  } catch (error) {
+    console.error('Failed to read milestone image', error);
+    newMilestone.imageFile = null;
+    newMilestone.imagePreview = '';
+  }
+};
+
+const removeMilestoneImage = () => {
+  newMilestone.imageFile = null;
+  newMilestone.imagePreview = '';
+  if (milestoneFileInput.value) {
+    milestoneFileInput.value.value = '';
+  }
+};
+
+const canSubmitMilestone = computed(
+  () => Boolean(newMilestone.label.trim() && newMilestone.date)
+);
 
 const submitMilestone = async () => {
   if (!canSubmitMilestone.value || milestoneSubmitting.value) return;
   milestoneSubmitting.value = true;
-  await store.addMilestone(newMilestone.value.label, newMilestone.value.date);
-  newMilestone.value = { label: '', date: '' };
-  milestoneSubmitting.value = false;
+  try {
+    let imageData = newMilestone.imagePreview;
+    if (!imageData && newMilestone.imageFile) {
+      imageData = await readFileAsDataUrl(newMilestone.imageFile);
+    }
+    await store.addMilestone(newMilestone.label, newMilestone.date, imageData || undefined);
+    closeMilestoneDialog();
+  } finally {
+    milestoneSubmitting.value = false;
+  }
 };
 </script>
 
@@ -204,20 +299,95 @@ const submitMilestone = async () => {
 }
 
 
+.milestone-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1.25rem;
+}
+
+.add-milestone-button {
+  padding: 0.55rem 1.1rem;
+  border-radius: 999px;
+  border: none;
+  font-weight: 600;
+  background: var(--accent);
+  color: #fff;
+  box-shadow: 0 10px 24px rgba(255, 105, 180, 0.25);
+  cursor: pointer;
+}
+
+.add-milestone-button:hover {
+  filter: brightness(1.05);
+}
+
 .milestones {
   list-style: none;
   margin: 0;
   padding: 0;
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-  gap: 1.25rem;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 1.5rem;
 }
 
-.milestones li {
+.milestone-card {
   padding: 1.1rem 1.25rem;
   border-radius: 22px;
   background: var(--milestone-surface);
   box-shadow: var(--milestone-shadow);
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.milestone-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 18px 36px rgba(17, 25, 40, 0.18);
+}
+
+.milestone-card.add-card {
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.65rem;
+  border: 2px dashed rgba(255, 255, 255, 0.35);
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--text-secondary);
+}
+
+.milestone-card.add-card:hover {
+  border-color: rgba(255, 255, 255, 0.6);
+  color: #fff;
+}
+
+.add-icon {
+  font-size: 2rem;
+  line-height: 1;
+}
+
+.milestone-image {
+  width: 100px;
+  height: 100px;
+  border-radius: 18px;
+  overflow: hidden;
+  background: rgba(255, 255, 255, 0.08);
+  flex-shrink: 0;
+}
+
+.milestone-image img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.milestone-content {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
 }
 
 .empty-hint {
@@ -253,41 +423,96 @@ const submitMilestone = async () => {
   color: var(--text-secondary);
 }
 
-.milestone-form {
+
+.milestone-dialog-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(13, 16, 28, 0.68);
+  display: grid;
+  place-items: center;
+  padding: 1.5rem;
+  z-index: 60;
+}
+
+.milestone-dialog {
+  background: var(--panel-surface, rgba(25, 33, 59, 0.95));
+  border-radius: 24px;
+  padding: 2rem;
+  width: min(420px, 100%);
   display: flex;
   flex-direction: column;
   gap: 1rem;
-  margin-bottom: 1.5rem;
-  padding: 1.1rem 1.25rem;
-  border-radius: 20px;
-  background: var(--milestone-form-surface, rgba(255, 255, 255, 0.12));
-  box-shadow: var(--milestone-shadow);
+  box-shadow: 0 24px 48px rgba(0, 0, 0, 0.35);
 }
 
-.field-group {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 1rem;
+.milestone-dialog h4 {
+  margin: 0 0 0.5rem;
 }
 
-.field-group label {
-  flex: 1 1 220px;
+.milestone-dialog label {
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
   font-weight: 600;
 }
 
-.field-group input {
-  padding: 0.65rem 0.85rem;
+.milestone-dialog input[type='text'],
+.milestone-dialog input[type='date'],
+.milestone-dialog input[type='file'] {
   border-radius: 12px;
   border: none;
-  background: var(--milestone-field-surface, rgba(255, 255, 255, 0.08));
+  padding: 0.65rem 0.85rem;
+  background: rgba(255, 255, 255, 0.08);
   color: inherit;
+  font-family: inherit;
 }
 
-.milestone-form button {
-  align-self: flex-end;
+.milestone-dialog input[type='file'] {
+  padding: 0.45rem 0.85rem;
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.milestone-image-preview {
+  position: relative;
+  border-radius: 18px;
+  overflow: hidden;
+  max-height: 220px;
+}
+
+.milestone-image-preview img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.remove-image {
+  position: absolute;
+  right: 0.75rem;
+  top: 0.75rem;
+  background: rgba(0, 0, 0, 0.55);
+  color: #fff;
+  border: none;
+  border-radius: 999px;
+  padding: 0.35rem 0.75rem;
+  cursor: pointer;
+}
+
+.dialog-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.75rem;
+  margin-top: 0.5rem;
+}
+
+.dialog-actions button {
+  min-width: 96px;
+}
+
+.dialog-actions .ghost {
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  color: inherit;
 }
 
 @media (max-width: 768px) {
@@ -296,8 +521,13 @@ const submitMilestone = async () => {
     text-align: center;
   }
 
-  .milestone-form {
-    padding: 1rem;
+  .milestone-card {
+    gap: 0.85rem;
+  }
+
+  .milestone-image {
+    width: 80px;
+    height: 80px;
   }
 }
 </style>

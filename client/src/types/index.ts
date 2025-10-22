@@ -1,7 +1,7 @@
 export interface Relationship {
   coupleNames: string[];
   startedOn: string;
-  milestones: { label: string; date: string }[];
+  milestones: { label: string; date: string; imageUrl?: string }[];
 }
 
 export interface RelationshipSummary {
@@ -13,6 +13,7 @@ export interface RelationshipSummary {
 export interface Milestone {
   label: string;
   date: string;
+  imageUrl?: string;
 }
 
 export interface PaginatedResult<T> {
