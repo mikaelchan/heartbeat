@@ -15,7 +15,8 @@
           v-for="(cell, index) in calendarCells"
           :key="index"
           class="calendar-cell"
-          :class="{ today: cell.isToday, 'other-month': !cell.inCurrentMonth }"
+          :class="calendarCellClasses(cell)"
+          :style="getCalendarCellStyle(cell)"
           @click="openPlanDialog(cell.date)"
         >
           <span class="date-number">{{ cell.date.date() }}</span>
@@ -23,8 +24,10 @@
             <div
               v-for="entry in cell.entries"
               :key="entry.id"
-              class="plan-pill"
-              :data-status="entry.status"
+                class="plan-pill"
+                :class="{ 'has-photo': entry.attachments.length > 0 }"
+                :style="getPlanBackgroundStyle(entry)"
+                :data-status="entry.status"
               :data-source="entry.source"
             >
               <p class="plan-title">{{ entry.title }}</p>
@@ -59,23 +62,20 @@
         <li
           v-for="item in store.bucket"
           :key="item._id ?? item.order"
-          :class="{ completed: item.completed }"
+          :class="{ completed: item.completed, 'has-photo': item.completed && item.photoUrl }"
+          :style="bucketCardStyle(item)"
         >
           <button
             v-if="!item.completed"
             type="button"
-            class="bucket-status-badge mark-complete"
+            class="bucket-status-badge mark-complete icon-only"
             @click.stop="openBucketCompletionDialog(item)"
           >
-            记录完成
-          </button>
-          <button
-            v-else
-            type="button"
-            class="bucket-status-badge ghost"
-            @click.stop="markBucketIncomplete(item)"
-          >
-            标记为未完成
+            <span class="visually-hidden">标记为完成</span>
+            <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+              <circle cx="12" cy="12" r="11" />
+              <path d="M8.5 12.5l2.3 2.3 4.7-5.3" />
+            </svg>
           </button>
           <div class="bucket-content">
             <span class="order">#{{ item.order.toString().padStart(2, '0') }}</span>
@@ -85,9 +85,6 @@
                 完成于 {{ formatDisplayDate(item.completedOn) }}
               </span>
             </div>
-          </div>
-          <div v-if="item.completed && item.photoUrl" class="bucket-thumbnail">
-            <img :src="item.photoUrl" :alt="item.title" />
           </div>
         </li>
       </ul>
@@ -143,6 +140,19 @@
           <input v-model="bucketDialog.completedOn" type="date" required />
         </label>
         <label>
+          上传照片（可选）
+          <input
+            ref="bucketFileInput"
+            type="file"
+            accept="image/*"
+            @change="onBucketFileChange"
+          />
+        </label>
+        <div v-if="bucketDialog.photoPreview" class="bucket-photo-preview">
+          <img :src="bucketDialog.photoPreview" alt="照片预览" />
+          <button type="button" class="remove-photo" @click="removeBucketImage">移除图片</button>
+        </div>
+        <label>
           图片链接（可选）
           <input v-model="bucketDialog.photoUrl" type="url" placeholder="https://..." />
         </label>
@@ -186,6 +196,8 @@ import { computed, onMounted, reactive, ref } from 'vue';
 import dayjs, { type Dayjs } from 'dayjs';
 import { useHeartbeatStore } from '@/stores/heartbeat';
 import type { BucketItem, Plan } from '@/types';
+import { readFileAsDataUrl } from '@/utils/file';
+import { uploadImage } from '@/utils/upload';
 
 const store = useHeartbeatStore();
 const focusDate = ref(dayjs());
@@ -206,9 +218,12 @@ const bucketCreateSubmitting = ref(false);
 const bucketDialog = reactive({
   item: null as BucketItem | null,
   completedOn: dayjs().format('YYYY-MM-DD'),
-  photoUrl: ''
+  photoUrl: '',
+  photoFile: null as File | null,
+  photoPreview: ''
 });
 const bucketCreateTitle = ref('');
+const bucketFileInput = ref<HTMLInputElement | null>(null);
 
 const weekdays = ['日', '一', '二', '三', '四', '五', '六'];
 
@@ -360,6 +375,11 @@ const closeBucketCompletionDialog = () => {
   bucketDialog.item = null;
   bucketDialog.completedOn = dayjs().format('YYYY-MM-DD');
   bucketDialog.photoUrl = '';
+  bucketDialog.photoFile = null;
+  bucketDialog.photoPreview = '';
+  if (bucketFileInput.value) {
+    bucketFileInput.value.value = '';
+  }
 };
 
 const openBucketCompletionDialog = (item: BucketItem) => {
@@ -367,17 +387,12 @@ const openBucketCompletionDialog = (item: BucketItem) => {
   bucketDialog.item = item;
   bucketDialog.completedOn = dayjs().format('YYYY-MM-DD');
   bucketDialog.photoUrl = item.photoUrl ?? '';
-  showBucketDialog.value = true;
-};
-
-const markBucketIncomplete = async (item: BucketItem) => {
-  if (bucketSubmitting.value) return;
-  bucketSubmitting.value = true;
-  try {
-    await store.updateBucketItem(item, { completed: false });
-  } finally {
-    bucketSubmitting.value = false;
+  bucketDialog.photoFile = null;
+  bucketDialog.photoPreview = '';
+  if (bucketFileInput.value) {
+    bucketFileInput.value.value = '';
   }
+  showBucketDialog.value = true;
 };
 
 const submitBucketCompletion = async () => {
@@ -386,14 +401,51 @@ const submitBucketCompletion = async () => {
   if (!date) return;
   bucketSubmitting.value = true;
   try {
+    let resolvedPhotoUrl = bucketDialog.photoUrl.trim();
+    if (bucketDialog.photoFile) {
+      try {
+        const uploaded = await uploadImage(bucketDialog.photoFile);
+        resolvedPhotoUrl = uploaded.url;
+      } catch (error) {
+        console.error('Failed to upload bucket image', error);
+      }
+    }
     await store.updateBucketItem(bucketDialog.item, {
       completed: true,
       completedOn: date,
-      photoUrl: bucketDialog.photoUrl.trim() || undefined
+      photoUrl: resolvedPhotoUrl || undefined
     });
     closeBucketCompletionDialog();
   } finally {
     bucketSubmitting.value = false;
+  }
+};
+
+const onBucketFileChange = async (event: Event) => {
+  const input = event.target as HTMLInputElement;
+  const file = input.files?.[0] ?? null;
+  bucketDialog.photoFile = file;
+  if (!file) {
+    bucketDialog.photoPreview = '';
+    return;
+  }
+  try {
+    bucketDialog.photoPreview = await readFileAsDataUrl(file);
+  } catch (error) {
+    console.error('Failed to read bucket image', error);
+    bucketDialog.photoFile = null;
+    bucketDialog.photoPreview = '';
+    if (bucketFileInput.value) {
+      bucketFileInput.value.value = '';
+    }
+  }
+};
+
+const removeBucketImage = () => {
+  bucketDialog.photoFile = null;
+  bucketDialog.photoPreview = '';
+  if (bucketFileInput.value) {
+    bucketFileInput.value.value = '';
   }
 };
 
@@ -417,6 +469,34 @@ const submitBucketCreate = async () => {
     bucketCreateSubmitting.value = false;
   }
 };
+
+const bucketCardStyle = (item: BucketItem): Record<string, string> => {
+  if (item.completed && item.photoUrl) {
+    return { '--bucket-background-image': `url(${item.photoUrl})` };
+  }
+  return {};
+};
+
+const getPlanBackgroundStyle = (entry: CalendarEntry): Record<string, string> => {
+  if (entry.attachments.length) {
+    return { '--plan-background-image': `url(${entry.attachments[0]})` };
+  }
+  return {};
+};
+
+const getCalendarCellStyle = (cell: CalendarCell): Record<string, string> => {
+  const withAttachment = cell.entries.find((entry) => entry.attachments.length > 0);
+  if (withAttachment) {
+    return { '--calendar-cell-background-image': `url(${withAttachment.attachments[0]})` };
+  }
+  return {};
+};
+
+const calendarCellClasses = (cell: CalendarCell) => ({
+  today: cell.isToday,
+  'other-month': !cell.inCurrentMonth,
+  'has-photo': cell.entries.some((entry) => entry.attachments.length > 0)
+});
 </script>
 
 <style scoped>
@@ -468,15 +548,34 @@ const submitBucketCreate = async () => {
 }
 
 .calendar-cell {
+  position: relative;
+  overflow: hidden;
   min-height: 140px;
   border-radius: 18px;
   padding: 0.75rem;
-  background: var(--calendar-cell-background);
+  background-color: var(--calendar-cell-background);
+  background-image: var(--calendar-cell-background-image, none);
+  background-size: cover;
+  background-position: center;
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
   cursor: pointer;
   transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.calendar-cell::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(155deg, rgba(15, 23, 42, 0.7), rgba(15, 23, 42, 0.25));
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+
+.calendar-cell > * {
+  position: relative;
+  z-index: 1;
 }
 
 .calendar-cell:hover {
@@ -492,8 +591,16 @@ const submitBucketCreate = async () => {
   opacity: 0.5;
 }
 
+.calendar-cell.has-photo::before {
+  opacity: 1;
+}
+
 .date-number {
   font-weight: 600;
+}
+
+.calendar-cell.has-photo .date-number {
+  color: #f8fafc;
 }
 
 .cell-plans {
@@ -503,29 +610,71 @@ const submitBucketCreate = async () => {
 }
 
 .plan-pill {
+  position: relative;
+  overflow: hidden;
   border-radius: 12px;
   padding: 0.6rem;
-  background: var(--calendar-plan-background);
+  background-color: var(--calendar-plan-background);
   display: flex;
   flex-direction: column;
   gap: 0.4rem;
+  color: inherit;
 }
 
-.plan-pill[data-status='completed'] {
-  background: var(--calendar-plan-completed);
+.plan-pill::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: linear-gradient(155deg, rgba(15, 23, 42, 0.65), rgba(15, 23, 42, 0.25));
+  opacity: 0;
+  transition: opacity 0.2s ease;
 }
 
-.plan-pill[data-status='in-progress'] {
-  background: var(--calendar-plan-progress);
+.plan-pill > * {
+  position: relative;
+  z-index: 1;
+}
+
+.plan-pill:not(.has-photo)[data-status='completed'] {
+  background-color: var(--calendar-plan-completed);
+}
+
+.plan-pill:not(.has-photo)[data-status='in-progress'] {
+  background-color: var(--calendar-plan-progress);
+}
+
+.plan-pill.has-photo {
+  background-color: transparent;
+  background-image: var(--plan-background-image, none);
+  background-size: cover;
+  background-position: center;
+  color: #f8fafc;
+}
+
+.plan-pill.has-photo::before {
+  opacity: 1;
+}
+
+.plan-pill.has-photo .plan-title {
+  font-weight: 600;
 }
 
 .plan-pill[data-source='bucket'] {
   border: 1px dashed var(--dialog-ghost-border);
 }
 
+.plan-pill.has-photo[data-source='bucket'] {
+  border: none;
+}
+
 .attachments {
   display: flex;
   gap: 0.3rem;
+}
+
+.plan-pill.has-photo .attachments {
+  display: none;
 }
 
 .attachments img {
@@ -597,16 +746,43 @@ const submitBucketCreate = async () => {
 
 .bucket-list li {
   position: relative;
+  overflow: hidden;
   display: flex;
   align-items: center;
   gap: 0.75rem;
   padding: 1.35rem 2.75rem 1rem 1rem;
   border-radius: 16px;
-  background: var(--bucket-card-background);
+  background-color: var(--bucket-card-background);
+  background-image: var(--bucket-background-image, none);
+  background-size: cover;
+  background-position: center;
+  color: inherit;
+}
+
+.bucket-list li::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(145deg, rgba(15, 23, 42, 0.7), rgba(15, 23, 42, 0.25));
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+
+.bucket-list li > * {
+  position: relative;
+  z-index: 1;
 }
 
 .bucket-list li.completed {
-  background: var(--bucket-card-completed);
+  background-color: var(--bucket-card-completed);
+}
+
+.bucket-list li.has-photo::before {
+  opacity: 1;
+}
+
+.bucket-list li.has-photo {
+  color: #f8fafc;
 }
 
 .bucket-content {
@@ -621,6 +797,10 @@ const submitBucketCreate = async () => {
   opacity: 0.75;
 }
 
+.bucket-list li.has-photo .order {
+  opacity: 0.9;
+}
+
 .bucket-text {
   display: flex;
   flex-direction: column;
@@ -629,6 +809,11 @@ const submitBucketCreate = async () => {
 
 .title {
   font-weight: 500;
+}
+
+.bucket-list li.has-photo .title,
+.bucket-list li.has-photo .completed-date {
+  color: #e2e8f0;
 }
 
 .completed-date {
@@ -641,26 +826,35 @@ const submitBucketCreate = async () => {
   top: 0.6rem;
   right: 0.75rem;
   border-radius: 999px;
-  padding: 0.35rem 0.85rem;
-  font-weight: 600;
-  font-size: 0.85rem;
-  border: 1px solid transparent;
-  background: var(--interactive-muted);
-  color: var(--text-primary);
-  box-shadow: var(--shadow-card);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   cursor: pointer;
+  border: none;
+  background: transparent;
+  padding: 0;
 }
 
-.bucket-status-badge.mark-complete {
-  background: var(--calendar-plan-upcoming);
-  color: #0f172a;
+.bucket-status-badge.icon-only {
+  width: 44px;
+  height: 44px;
 }
 
-.bucket-status-badge.ghost {
-  background: rgba(255, 255, 255, 0.12);
-  border-color: var(--dialog-ghost-border);
-  color: var(--text-secondary);
-  box-shadow: none;
+.bucket-status-badge.icon-only svg {
+  width: 40px;
+  height: 40px;
+}
+
+.bucket-status-badge.icon-only svg circle {
+  fill: #22c55e;
+}
+
+.bucket-status-badge.icon-only svg path {
+  stroke: #fff;
+  stroke-width: 2.4;
+  fill: none;
+  stroke-linecap: round;
+  stroke-linejoin: round;
 }
 
 .bucket-status-badge:focus-visible {
@@ -668,23 +862,46 @@ const submitBucketCreate = async () => {
   outline-offset: 2px;
 }
 
-.bucket-status-badge:active {
-  transform: translateY(1px);
+.bucket-status-badge:active svg circle {
+  filter: brightness(0.9);
 }
 
-.bucket-thumbnail {
-  width: 56px;
-  height: 56px;
-  border-radius: 12px;
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
   overflow: hidden;
-  box-shadow: var(--shadow-card);
-  margin-left: auto;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
 }
 
-.bucket-thumbnail img {
+.bucket-photo-preview {
+  position: relative;
+  margin-top: 0.75rem;
+  border-radius: 14px;
+  overflow: hidden;
+  border: 1px dashed var(--dialog-ghost-border);
+}
+
+.bucket-photo-preview img {
   width: 100%;
-  height: 100%;
+  display: block;
   object-fit: cover;
+}
+
+.bucket-photo-preview .remove-photo {
+  position: absolute;
+  top: 0.5rem;
+  right: 0.5rem;
+  border: none;
+  background: rgba(15, 23, 42, 0.7);
+  color: #fff;
+  border-radius: 999px;
+  padding: 0.35rem 0.75rem;
+  cursor: pointer;
 }
 
 .plan-dialog-overlay {
