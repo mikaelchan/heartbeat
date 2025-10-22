@@ -2,15 +2,12 @@
   <div class="plans-view">
     <section class="glass-panel plans-shell">
       <div class="calendar-header">
-        <button class="calendar-nav" @click="goPrevMonth">‹</button>
+        <button class="calendar-nav" @click="goPrevMonth" aria-label="上一月">‹</button>
         <div class="calendar-heading">
           <h3 class="section-title">{{ currentMonthLabel }}</h3>
           <p class="sub">把梦想一件件变成现实</p>
         </div>
-        <div class="header-actions">
-          <button type="button" class="primary" @click="openPlanDialog()">＋ 添加计划</button>
-          <button class="calendar-nav" @click="goNextMonth">›</button>
-        </div>
+        <button class="calendar-nav" @click="goNextMonth" aria-label="下一月">›</button>
       </div>
       <div class="calendar-grid">
         <div class="weekday" v-for="day in weekdays" :key="day">{{ day }}</div>
@@ -22,27 +19,31 @@
           @click="openPlanDialog(cell.date)"
         >
           <span class="date-number">{{ cell.date.date() }}</span>
-          <div v-if="cell.plans.length" class="cell-plans">
+          <div v-if="cell.entries.length" class="cell-plans">
             <div
-              v-for="plan in cell.plans"
-              :key="plan._id ?? plan.title"
+              v-for="entry in cell.entries"
+              :key="entry.id"
               class="plan-pill"
-              :data-status="plan.status"
-              @click.stop
+              :data-status="entry.status"
+              :data-source="entry.source"
             >
-              <p class="plan-title">{{ plan.title }}</p>
-              <div v-if="plan.attachments?.length" class="attachments">
-                <img v-for="(attachment, idx) in plan.attachments" :key="idx" :src="attachment" :alt="plan.title" />
+              <p class="plan-title">{{ entry.title }}</p>
+              <div v-if="entry.attachments.length" class="attachments">
+                <img
+                  v-for="(attachment, idx) in entry.attachments"
+                  :key="idx"
+                  :src="attachment"
+                  :alt="entry.title"
+                />
               </div>
             </div>
           </div>
         </div>
       </div>
     </section>
-    <section class="glass-panel bucket-shell" @click="openPlanDialog()">
+    <section class="glass-panel bucket-shell">
       <div class="bucket-header">
         <h3 class="section-title">{{ bucketTitle }}</h3>
-        <button type="button" class="ghost" @click.stop="openPlanDialog()">＋ 添加计划</button>
       </div>
       <div class="bucket-progress">
         <div class="progress-bar">
@@ -52,9 +53,31 @@
         <span v-else>暂未开始心动打卡</span>
       </div>
       <ul class="bucket-list">
-        <li v-for="item in store.bucket" :key="item._id ?? item.order" :class="{ completed: item.completed }">
-          <span class="order">#{{ item.order.toString().padStart(2, '0') }}</span>
-          <span class="title">{{ item.title }}</span>
+        <li
+          v-for="item in store.bucket"
+          :key="item._id ?? item.order"
+          :class="{ completed: item.completed }"
+        >
+          <button
+            type="button"
+            class="bucket-toggle"
+            :aria-pressed="item.completed"
+            @click="handleBucketToggle(item)"
+          >
+            <span class="sr-only">切换打卡状态</span>
+          </button>
+          <div class="bucket-content">
+            <span class="order">#{{ item.order.toString().padStart(2, '0') }}</span>
+            <div class="bucket-text">
+              <span class="title">{{ item.title }}</span>
+              <span v-if="item.completed && item.completedOn" class="completed-date">
+                完成于 {{ formatDisplayDate(item.completedOn) }}
+              </span>
+            </div>
+          </div>
+          <div v-if="item.completed && item.photoUrl" class="bucket-thumbnail">
+            <img :src="item.photoUrl" :alt="item.title" />
+          </div>
         </li>
       </ul>
     </section>
@@ -67,8 +90,8 @@
             <input v-model="newPlan.title" type="text" placeholder="我们要去做什么？" required />
           </label>
           <label>
-            计划日期
-            <input v-model="newPlan.scheduledOn" type="date" required />
+            计划日期（可选）
+            <input v-model="newPlan.scheduledOn" type="date" />
           </label>
         </div>
         <label>
@@ -81,7 +104,7 @@
         </label>
         <label>
           详细描述
-          <textarea v-model="newPlan.description" rows="3" placeholder="写下关于这个计划的细节..." required></textarea>
+          <textarea v-model="newPlan.description" rows="3" placeholder="写下关于这个计划的细节..."></textarea>
         </label>
         <label>
           附件（可选，使用换行分隔多个链接）
@@ -96,13 +119,31 @@
       </form>
     </div>
   </div>
+    <div v-if="showBucketDialog" class="plan-dialog-overlay" @click.self="closeBucketDialog">
+      <form class="plan-dialog bucket-dialog" @submit.prevent="submitBucketDialog">
+        <h3>记录打卡完成</h3>
+        <p class="bucket-dialog-hint">为这一刻选一个日期，也可以附上一张小小的照片。</p>
+        <label>
+          完成日期
+          <input v-model="bucketDialog.completedOn" type="date" required />
+        </label>
+        <label>
+          图片链接（可选）
+          <input v-model="bucketDialog.photoUrl" type="url" placeholder="https://..." />
+        </label>
+        <div class="dialog-footer">
+          <button type="button" class="ghost" @click="closeBucketDialog">取消</button>
+          <button type="submit" :disabled="bucketSubmitting">{{ bucketSubmitting ? '保存中...' : '保存' }}</button>
+        </div>
+      </form>
+    </div>
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue';
+import { computed, onMounted, reactive, ref } from 'vue';
 import dayjs, { type Dayjs } from 'dayjs';
 import { useHeartbeatStore } from '@/stores/heartbeat';
-import type { Plan } from '@/types';
+import type { BucketItem, Plan } from '@/types';
 
 const store = useHeartbeatStore();
 const focusDate = ref(dayjs());
@@ -116,6 +157,13 @@ const createEmptyPlan = () => ({
 });
 const newPlan = ref(createEmptyPlan());
 const showPlanDialog = ref(false);
+const showBucketDialog = ref(false);
+const bucketSubmitting = ref(false);
+const bucketDialog = reactive({
+  item: null as BucketItem | null,
+  completedOn: dayjs().format('YYYY-MM-DD'),
+  photoUrl: ''
+});
 
 const weekdays = ['日', '一', '二', '三', '四', '五', '六'];
 
@@ -130,12 +178,58 @@ onMounted(async () => {
 
 const currentMonthLabel = computed(() => focusDate.value.format('YYYY 年 M 月'));
 
+interface CalendarEntry {
+  id: string;
+  title: string;
+  status: Plan['status'];
+  attachments: string[];
+  source: 'plan' | 'bucket';
+  date: Dayjs;
+}
+
 interface CalendarCell {
   date: Dayjs;
   inCurrentMonth: boolean;
   isToday: boolean;
-  plans: Plan[];
+  entries: CalendarEntry[];
 }
+
+const calendarEntries = computed<CalendarEntry[]>(() => {
+  const plans = store.plans
+    .map((plan) => {
+      const displayDate = plan.completedOn ?? plan.scheduledOn;
+      if (!displayDate) return null;
+      const date = dayjs(displayDate);
+      if (!date.isValid()) return null;
+      return {
+        id: plan._id ?? `plan-${plan.title}-${displayDate}`,
+        title: plan.title,
+        status: plan.status,
+        attachments: plan.attachments ?? [],
+        source: 'plan' as const,
+        date
+      };
+    })
+    .filter((entry): entry is CalendarEntry => Boolean(entry));
+
+  const bucket = store.bucket
+    .filter((item) => item.completed && item.completedOn)
+    .map((item) => {
+      const date = dayjs(item.completedOn as string);
+      if (!date.isValid()) return null;
+      return {
+        id: `bucket-${item._id ?? item.order}`,
+        title: item.title,
+        status: 'completed' as Plan['status'],
+        attachments: item.photoUrl ? [item.photoUrl] : [],
+        source: 'bucket' as const,
+        date
+      };
+    })
+    .filter((entry): entry is CalendarEntry => Boolean(entry));
+
+  return [...plans, ...bucket];
+});
 
 const calendarCells = computed<CalendarCell[]>(() => {
   const startOfMonth = focusDate.value.startOf('month');
@@ -145,12 +239,12 @@ const calendarCells = computed<CalendarCell[]>(() => {
   const cells: CalendarCell[] = [];
   let cursor = startWeek;
   while (cursor.isBefore(endWeek) || cursor.isSame(endWeek)) {
-    const dayPlans = store.plans.filter((plan) => dayjs(plan.scheduledOn).isSame(cursor, 'day'));
+    const dayEntries = calendarEntries.value.filter((entry) => entry.date.isSame(cursor, 'day'));
     cells.push({
       date: cursor,
       inCurrentMonth: cursor.isSame(focusDate.value, 'month'),
       isToday: cursor.isSame(dayjs(), 'day'),
-      plans: dayPlans
+      entries: dayEntries
     });
     cursor = cursor.add(1, 'day');
   }
@@ -174,9 +268,7 @@ const bucketTitle = computed(() =>
   bucketTotal.value ? `${bucketTotal.value} 件心动打卡` : '心动打卡清单'
 );
 
-const canSubmitPlan = computed(
-  () => newPlan.value.title.trim() && newPlan.value.description.trim() && newPlan.value.scheduledOn
-);
+const canSubmitPlan = computed(() => Boolean(newPlan.value.title.trim()));
 
 const resetPlanForm = (date?: Dayjs) => {
   newPlan.value = createEmptyPlan();
@@ -214,6 +306,49 @@ const submitPlan = async () => {
     planSubmitting.value = false;
   }
 };
+
+const formatDisplayDate = (value: string) => dayjs(value).format('YYYY 年 M 月 D 日');
+
+const closeBucketDialog = () => {
+  showBucketDialog.value = false;
+  bucketDialog.item = null;
+  bucketDialog.completedOn = dayjs().format('YYYY-MM-DD');
+  bucketDialog.photoUrl = '';
+};
+
+const handleBucketToggle = async (item: BucketItem) => {
+  if (bucketSubmitting.value) return;
+  if (item.completed) {
+    bucketSubmitting.value = true;
+    try {
+      await store.updateBucketItem(item, { completed: false });
+    } finally {
+      bucketSubmitting.value = false;
+    }
+    return;
+  }
+  bucketDialog.item = item;
+  bucketDialog.completedOn = dayjs().format('YYYY-MM-DD');
+  bucketDialog.photoUrl = item.photoUrl ?? '';
+  showBucketDialog.value = true;
+};
+
+const submitBucketDialog = async () => {
+  if (!bucketDialog.item || bucketSubmitting.value) return;
+  const date = bucketDialog.completedOn;
+  if (!date) return;
+  bucketSubmitting.value = true;
+  try {
+    await store.updateBucketItem(bucketDialog.item, {
+      completed: true,
+      completedOn: date,
+      photoUrl: bucketDialog.photoUrl.trim() || undefined
+    });
+    closeBucketDialog();
+  } finally {
+    bucketSubmitting.value = false;
+  }
+};
 </script>
 
 <style scoped>
@@ -233,6 +368,7 @@ const submitPlan = async () => {
   display: flex;
   align-items: center;
   gap: 1.25rem;
+  justify-content: space-between;
 }
 
 .calendar-nav {
@@ -249,21 +385,6 @@ const submitPlan = async () => {
   gap: 0.25rem;
   flex: 1;
   text-align: center;
-}
-
-.header-actions {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-}
-
-.header-actions .primary {
-  border-radius: 999px;
-  padding: 0.6rem 1.3rem;
-  font-weight: 600;
-  background: var(--primary-button-bg);
-  color: var(--primary-button-text);
-  box-shadow: var(--primary-button-shadow);
 }
 
 .calendar-grid {
@@ -330,6 +451,10 @@ const submitPlan = async () => {
   background: var(--calendar-plan-progress);
 }
 
+.plan-pill[data-source='bucket'] {
+  border: 1px dashed var(--dialog-ghost-border);
+}
+
 .attachments {
   display: flex;
   gap: 0.3rem;
@@ -350,18 +475,8 @@ const submitPlan = async () => {
 
 .bucket-header {
   display: flex;
-  justify-content: space-between;
   align-items: center;
   gap: 1rem;
-}
-
-.bucket-header .ghost {
-  border-radius: 999px;
-  padding: 0.45rem 1rem;
-  font-weight: 600;
-  background: transparent;
-  border: 1px solid var(--surface-border, rgba(15, 23, 42, 0.12));
-  color: inherit;
 }
 
 .bucket-progress {
@@ -395,15 +510,63 @@ const submitPlan = async () => {
 }
 
 .bucket-list li {
-  display: flex;
+  display: grid;
+  grid-template-columns: auto 1fr auto;
   gap: 0.75rem;
   padding: 0.8rem 1rem;
   border-radius: 16px;
   background: var(--bucket-card-background);
+  align-items: center;
 }
 
 .bucket-list li.completed {
   background: var(--bucket-card-completed);
+}
+
+.bucket-toggle {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: 2px solid var(--dialog-ghost-border);
+  background: transparent;
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  position: relative;
+}
+
+.bucket-toggle::before {
+  content: '';
+  font-size: 1rem;
+  color: var(--text-primary);
+}
+
+.bucket-toggle::after {
+  content: '';
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: transparent;
+  transition: background 0.2s ease;
+}
+
+.bucket-list li.completed .bucket-toggle {
+  background: var(--calendar-plan-completed);
+  border-color: transparent;
+}
+
+.bucket-list li.completed .bucket-toggle::before {
+  content: '✓';
+}
+
+.bucket-list li.completed .bucket-toggle::after {
+  background: rgba(15, 23, 42, 0.6);
+}
+
+.bucket-content {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
 }
 
 .order {
@@ -411,14 +574,51 @@ const submitPlan = async () => {
   opacity: 0.75;
 }
 
+.bucket-text {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
 .title {
   font-weight: 500;
+}
+
+.completed-date {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+}
+
+.bucket-thumbnail {
+  width: 56px;
+  height: 56px;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: var(--shadow-card);
+}
+
+.bucket-thumbnail img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
 }
 
 .plan-dialog-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(13, 16, 28, 0.68);
+  background: var(--dialog-overlay);
   display: grid;
   place-items: center;
   padding: 1.5rem;
@@ -427,13 +627,15 @@ const submitPlan = async () => {
 
 .plan-dialog {
   width: min(520px, 100%);
-  background: var(--panel-surface, rgba(25, 33, 59, 0.95));
+  background: var(--dialog-surface);
   border-radius: 24px;
   padding: 2rem;
   display: flex;
   flex-direction: column;
   gap: 1rem;
-  box-shadow: 0 24px 48px rgba(0, 0, 0, 0.35);
+  box-shadow: 0 24px 48px rgba(15, 23, 42, 0.18);
+  border: 1px solid var(--dialog-border);
+  color: var(--text-primary);
 }
 
 .plan-dialog h3 {
@@ -452,9 +654,9 @@ const submitPlan = async () => {
 .plan-dialog select,
 .plan-dialog textarea {
   border-radius: 12px;
-  border: none;
+  border: 1px solid var(--dialog-input-border);
   padding: 0.65rem 0.85rem;
-  background: var(--plan-field-surface, rgba(255, 255, 255, 0.08));
+  background: var(--dialog-input-background);
   color: inherit;
   font-family: inherit;
 }
@@ -478,8 +680,18 @@ const submitPlan = async () => {
 
 .dialog-footer .ghost {
   background: transparent;
-  border: 1px solid rgba(255, 255, 255, 0.35);
+  border: 1px solid var(--dialog-ghost-border);
   color: inherit;
+}
+
+.bucket-dialog {
+  width: min(420px, 100%);
+}
+
+.bucket-dialog-hint {
+  margin: -0.5rem 0 0.5rem;
+  color: var(--text-secondary);
+  font-size: 0.95rem;
 }
 
 @media (max-width: 768px) {
@@ -490,17 +702,6 @@ const submitPlan = async () => {
   .calendar-heading {
     order: 1;
     width: 100%;
-  }
-
-  .header-actions {
-    order: 2;
-    width: 100%;
-    justify-content: space-between;
-  }
-
-  .header-actions .primary {
-    flex: 1;
-    text-align: center;
   }
 
   .dialog-footer {

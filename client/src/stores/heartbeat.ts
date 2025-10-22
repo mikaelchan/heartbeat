@@ -93,15 +93,46 @@ const createFallbackPlans = (username: string, gender: UserGender): Plan[] => [
     scheduledOn: '2024-05-20T09:00:00.000Z',
     attachments: [],
     status: 'in-progress'
+  },
+  {
+    title: '完成我们的心愿清单之一',
+    description: `${username} 和 ${getPartnerName(gender)} 已经完成了一件小小的心愿。`,
+    completedOn: new Date(Date.now() - 15 * 24 * 3600 * 1000).toISOString(),
+    attachments: [
+      'https://images.unsplash.com/photo-1526481280695-3c46977c0522?auto=format&fit=crop&w=200&q=80'
+    ],
+    status: 'completed'
   }
 ];
 
+const fallbackBucketImages = [
+  'https://images.unsplash.com/photo-1520854221050-0f4caff449fb?auto=format&fit=crop&w=200&q=80',
+  'https://images.unsplash.com/photo-1524504388940-b1c1722653e1?auto=format&fit=crop&w=200&q=80',
+  'https://images.unsplash.com/photo-1517841905240-472988babdf9?auto=format&fit=crop&w=200&q=80'
+];
+
 const createFallbackBucket = (username: string, gender: UserGender): BucketItem[] =>
-  Array.from({ length: 12 }, (_, index) => ({
-    order: index + 1,
-    title: `${username} 和 ${getPartnerName(gender)} 的第 ${index + 1} 件小事`,
-    completed: index < 3
-  }));
+  Array.from({ length: 12 }, (_, index) => {
+    const completed = index < 3;
+    const base: BucketItem = {
+      order: index + 1,
+      title: `${username} 和 ${getPartnerName(gender)} 的第 ${index + 1} 件小事`,
+      completed
+    };
+    if (completed) {
+      const date = new Date(Date.now() - (index + 2) * 86400000).toISOString();
+      base.completedOn = date;
+      base.photoUrl = fallbackBucketImages[index % fallbackBucketImages.length];
+    }
+    return base;
+  });
+
+const getPlanTimestamp = (plan: Plan) => {
+  const date = plan.completedOn ?? plan.scheduledOn;
+  if (!date) return Number.MAX_SAFE_INTEGER;
+  const time = new Date(date).getTime();
+  return Number.isNaN(time) ? Number.MAX_SAFE_INTEGER : time;
+};
 
 const createFallbackMessages = (username: string, gender: UserGender): Message[] => [
   {
@@ -239,10 +270,10 @@ export const useHeartbeatStore = defineStore('heartbeat', {
       const fallback = createFallbackData();
       try {
         const response = await axios.get<Plan[]>('/api/plans');
-        this.plans = response.data;
+        this.plans = response.data.sort((a, b) => getPlanTimestamp(a) - getPlanTimestamp(b));
       } catch (error) {
         console.error('Failed to fetch plans', error);
-        this.plans = fallback.plans;
+        this.plans = fallback.plans.sort((a, b) => getPlanTimestamp(a) - getPlanTimestamp(b));
       } finally {
         this.plansLoading = false;
       }
@@ -312,23 +343,94 @@ export const useHeartbeatStore = defineStore('heartbeat', {
       }
     },
     async addPlan(plan: Omit<Plan, '_id'>) {
+      const attachments = plan.attachments?.filter((item) => item.trim()) ?? [];
       const normalizedPlan: Omit<Plan, '_id'> = {
-        ...plan,
-        scheduledOn: new Date(plan.scheduledOn).toISOString(),
-        attachments: plan.attachments?.filter((item) => item.trim()) ?? [],
-        status: plan.status
+        title: plan.title.trim(),
+        description: plan.description?.trim() ?? '',
+        status: plan.status,
+        attachments
       };
+
+      if (plan.scheduledOn) {
+        const date = new Date(plan.scheduledOn);
+        if (!Number.isNaN(date.getTime())) {
+          normalizedPlan.scheduledOn = date.toISOString();
+        }
+      }
+
+      if (plan.completedOn) {
+        const completedDate = new Date(plan.completedOn);
+        if (!Number.isNaN(completedDate.getTime())) {
+          normalizedPlan.completedOn = completedDate.toISOString();
+        }
+      }
 
       try {
         const response = await axios.post<Plan>('/api/plans', normalizedPlan);
         this.plans = [...this.plans, response.data].sort(
-          (a, b) => new Date(a.scheduledOn).getTime() - new Date(b.scheduledOn).getTime()
+          (a, b) => getPlanTimestamp(a) - getPlanTimestamp(b)
         );
       } catch (error) {
         console.error('Failed to create plan', error);
         this.plans = [...this.plans, normalizedPlan].sort(
-          (a, b) => new Date(a.scheduledOn).getTime() - new Date(b.scheduledOn).getTime()
+          (a, b) => getPlanTimestamp(a) - getPlanTimestamp(b)
         );
+      }
+    },
+    async updateBucketItem(target: BucketItem, updates: Partial<BucketItem>) {
+      const identifier = target._id ?? target.order;
+      const index = this.bucket.findIndex((item) => (item._id ?? item.order) === identifier);
+      if (index === -1) return;
+
+      const previous = { ...this.bucket[index] };
+      const normalizedUpdates: Partial<BucketItem> = { ...updates };
+
+      if ('photoUrl' in updates) {
+        normalizedUpdates.photoUrl = updates.photoUrl?.trim() || undefined;
+      }
+
+      if ('completedOn' in updates) {
+        if (updates.completedOn) {
+          const completedDate = new Date(updates.completedOn);
+          normalizedUpdates.completedOn = Number.isNaN(completedDate.getTime())
+            ? previous.completedOn
+            : completedDate.toISOString();
+        } else {
+          normalizedUpdates.completedOn = undefined;
+        }
+      }
+
+      if (updates.completed === false) {
+        normalizedUpdates.completedOn = undefined;
+        normalizedUpdates.photoUrl = undefined;
+      }
+
+      const nextItem: BucketItem = {
+        ...previous,
+        ...normalizedUpdates
+      };
+
+      this.bucket.splice(index, 1, nextItem);
+
+      try {
+        const payload: Record<string, unknown> = {};
+        if ('completed' in updates) {
+          payload.completed = updates.completed;
+        }
+        if ('completedOn' in updates) {
+          payload.completedOn = updates.completedOn
+            ? new Date(updates.completedOn).toISOString()
+            : null;
+        }
+        if ('photoUrl' in updates) {
+          payload.photoUrl = updates.photoUrl || null;
+        }
+        if (Object.keys(payload).length) {
+          await axios.patch(`/api/bucket/${identifier}`, payload);
+        }
+      } catch (error) {
+        console.error('Failed to update bucket item', error);
+        this.bucket.splice(index, 1, previous);
       }
     },
     async fetchBucket() {

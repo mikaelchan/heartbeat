@@ -54,7 +54,7 @@
         </div>
         <label>
           回忆描述
-          <textarea v-model="newMemory.description" rows="3" placeholder="记录下那份心动..." required></textarea>
+          <textarea v-model="newMemory.description" rows="3" placeholder="记录下那份心动..."></textarea>
         </label>
         <label>
           地点
@@ -191,9 +191,7 @@ watch(
 );
 
 const canSubmitMemory = computed(() => {
-  return (
-    newMemory.title.trim() && newMemory.description.trim() && newMemory.happenedOn && selectedPlace.value
-  );
+  return newMemory.title.trim() && newMemory.happenedOn && selectedPlace.value;
 });
 
 const resetMemoryForm = () => {
@@ -449,15 +447,15 @@ const submitMemory = async () => {
 .memory-dialog-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(13, 16, 28, 0.68);
+  background: var(--dialog-overlay);
   display: grid;
   place-items: center;
   padding: 1.5rem;
-  z-index: 60;
+  z-index: 80;
 }
 
 .memory-dialog {
-  background: var(--panel-surface, rgba(25, 33, 59, 0.95));
+  background: var(--dialog-surface);
   border-radius: 24px;
   padding: 2rem;
   width: min(480px, 100%);
@@ -465,8 +463,10 @@ const submitMemory = async () => {
   display: flex;
   flex-direction: column;
   gap: 1rem;
-  box-shadow: 0 24px 48px rgba(0, 0, 0, 0.35);
+  box-shadow: 0 24px 48px rgba(15, 23, 42, 0.18);
   overflow-y: auto;
+  border: 1px solid var(--dialog-border);
+  color: var(--text-primary);
 }
 
 .memory-dialog h4 {
@@ -486,16 +486,15 @@ const submitMemory = async () => {
 .memory-dialog input[type='file'],
 .memory-dialog textarea {
   border-radius: 12px;
-  border: none;
+  border: 1px solid var(--dialog-input-border);
   padding: 0.65rem 0.85rem;
-  background: rgba(255, 255, 255, 0.08);
+  background: var(--dialog-input-background);
   color: inherit;
   font-family: inherit;
 }
 
 .memory-dialog input[type='file'] {
   padding: 0.45rem 0.85rem;
-  background: rgba(255, 255, 255, 0.05);
 }
 
 .memory-dialog textarea {
@@ -619,7 +618,7 @@ const submitMemory = async () => {
 
 .dialog-actions .ghost {
   background: transparent;
-  border: 1px solid rgba(255, 255, 255, 0.35);
+  border: 1px solid var(--dialog-ghost-border);
   color: inherit;
 }
 
