@@ -14,7 +14,6 @@
         <h2 class="duration gradient-text">{{ durationDisplay }}</h2>
         <p class="started">自 {{ formattedStart }}</p>
       </div>
-      <GrowingTree class="tree-illustration" :progress="growthProgress" />
     </div>
   </section>
   <section class="glass-panel home-section" v-if="relationship">
@@ -51,7 +50,6 @@ import duration from 'dayjs/plugin/duration';
 import relativeTime from 'dayjs/plugin/relativeTime';
 import { useHeartbeatStore } from '@/stores/heartbeat';
 import { useAuthStore } from '@/stores/auth';
-import GrowingTree from '@/components/GrowingTree.vue';
 
 dayjs.extend(duration);
 dayjs.extend(relativeTime);
@@ -185,10 +183,6 @@ const formatDate = (value: string) => dayjs(value).format('YYYY 年 M 月 D 日'
   color: var(--text-secondary);
 }
 
-.tree-illustration {
-  width: min(240px, 30vw);
-  flex-shrink: 0;
-}
 
 .milestones {
   list-style: none;
@@ -243,10 +237,6 @@ const formatDate = (value: string) => dayjs(value).format('YYYY 年 M 月 D 日'
   .hero {
     flex-direction: column;
     text-align: center;
-  }
-
-  .tree-illustration {
-    width: min(200px, 45vw);
   }
 }
 </style>
