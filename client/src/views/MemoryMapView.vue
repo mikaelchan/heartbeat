@@ -11,8 +11,13 @@
         <div id="memory-map"></div>
         <aside class="memory-list">
           <article v-for="memory in store.memories" :key="memory._id ?? memory.title" class="memory-card">
-            <img :src="memory.photoUrl" :alt="memory.title" />
-            <div>
+            <div class="memory-media">
+              <img v-if="memory.photoUrl" :src="memory.photoUrl" :alt="memory.title" />
+              <div v-else class="memory-placeholder" aria-hidden="true">
+                <span class="placeholder-icon">📍</span>
+              </div>
+            </div>
+            <div class="memory-content">
               <h4>{{ memory.title }}</h4>
               <p class="place">{{ memory.location.placeName }}</p>
               <p class="date">{{ formatDate(memory.happenedOn) }}</p>
@@ -36,11 +41,11 @@
           <input v-model="newMemory.happenedOn" type="date" required />
         </label>
         <label>
-          上传照片
+          上传照片（可选）
           <input ref="memoryFileInput" type="file" accept="image/*" @change="onMemoryFileChange" />
         </label>
         <label>
-          或使用图片链接
+          或使用图片链接（可选）
           <input v-model="newMemory.photoUrl" type="url" placeholder="https://..." />
         </label>
         <div v-if="newMemory.photoPreview" class="memory-image-preview">
@@ -187,11 +192,7 @@ watch(
 
 const canSubmitMemory = computed(() => {
   return (
-    newMemory.title.trim() &&
-    newMemory.description.trim() &&
-    newMemory.happenedOn &&
-    (newMemory.photoUrl.trim() || newMemory.photoPreview) &&
-    selectedPlace.value
+    newMemory.title.trim() && newMemory.description.trim() && newMemory.happenedOn && selectedPlace.value
   );
 });
 
@@ -244,6 +245,7 @@ const onMemoryFileChange = async (event: Event) => {
 const removeMemoryImage = () => {
   newMemory.photoFile = null;
   newMemory.photoPreview = '';
+  newMemory.photoUrl = '';
   if (memoryFileInput.value) {
     memoryFileInput.value.value = '';
   }
@@ -305,18 +307,17 @@ const submitMemory = async () => {
     if (!photoUrl && newMemory.photoPreview) {
       photoUrl = newMemory.photoPreview;
     }
-    if (!photoUrl) return;
 
     await store.addMemory({
       title: newMemory.title,
       description: newMemory.description,
-      photoUrl,
       happenedOn: newMemory.happenedOn,
       location: {
         placeName: place.name,
         lat: place.lat,
         lng: place.lng
-      }
+      },
+      ...(photoUrl ? { photoUrl } : {})
     });
     closeMemoryDialog();
     if (map) {
@@ -398,11 +399,38 @@ const submitMemory = async () => {
   padding: 1rem;
 }
 
-.memory-card img {
+.memory-media {
   width: 120px;
   height: 120px;
-  object-fit: cover;
   border-radius: 16px;
+  overflow: hidden;
+  background: var(--memory-card-placeholder, rgba(255, 255, 255, 0.08));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.memory-media img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.memory-placeholder {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 2rem;
+  color: var(--accent);
+}
+
+.memory-content {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
 }
 
 .place {
@@ -433,10 +461,12 @@ const submitMemory = async () => {
   border-radius: 24px;
   padding: 2rem;
   width: min(480px, 100%);
+  height: min(660px, 90vh);
   display: flex;
   flex-direction: column;
   gap: 1rem;
   box-shadow: 0 24px 48px rgba(0, 0, 0, 0.35);
+  overflow-y: auto;
 }
 
 .memory-dialog h4 {
