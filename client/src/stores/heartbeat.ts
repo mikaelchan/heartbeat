@@ -41,9 +41,24 @@ const createFallbackRelationship = (username: string, gender: UserGender): Relat
   coupleNames: [username, getPartnerName(gender)],
   startedOn: '2025-07-19T15:21:55.000Z',
   milestones: [
-    { label: `${username} 与 ${getPartnerName(gender)} 第一次牵手`, date: '2021-07-03T00:00:00.000Z' },
-    { label: '第一次旅行', date: '2022-05-03T00:00:00.000Z' },
-    { label: '相伴同居', date: '2023-08-20T00:00:00.000Z' }
+    {
+      label: `${username} 与 ${getPartnerName(gender)} 第一次牵手`,
+      date: '2021-07-03T00:00:00.000Z',
+      imageUrl:
+        'https://images.unsplash.com/photo-1520854221050-0f4caff449fb?auto=format&fit=crop&w=600&q=80'
+    },
+    {
+      label: '第一次旅行',
+      date: '2022-05-03T00:00:00.000Z',
+      imageUrl:
+        'https://images.unsplash.com/photo-1521295121783-8a321d551ad2?auto=format&fit=crop&w=600&q=80'
+    },
+    {
+      label: '相伴同居',
+      date: '2023-08-20T00:00:00.000Z',
+      imageUrl:
+        'https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?auto=format&fit=crop&w=600&q=80'
+    }
   ]
 });
 
@@ -232,13 +247,17 @@ export const useHeartbeatStore = defineStore('heartbeat', {
         this.plansLoading = false;
       }
     },
-    async addMilestone(label: string, date: string) {
+    async addMilestone(label: string, date: string, imageUrl?: string) {
       const trimmedLabel = label.trim();
       if (!trimmedLabel || !date) return;
       const normalizedDate = new Date(date);
       if (Number.isNaN(normalizedDate.getTime())) return;
 
-      const payload = { label: trimmedLabel, date: normalizedDate.toISOString() };
+      const payload: Milestone = {
+        label: trimmedLabel,
+        date: normalizedDate.toISOString(),
+        ...(imageUrl ? { imageUrl } : {})
+      };
 
       try {
         const response = await axios.post<Milestone>('/api/relationship/milestones', payload);
