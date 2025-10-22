@@ -94,6 +94,7 @@ import relativeTime from 'dayjs/plugin/relativeTime';
 import { useHeartbeatStore } from '@/stores/heartbeat';
 import { useAuthStore } from '@/stores/auth';
 import { readFileAsDataUrl } from '@/utils/file';
+import { uploadImage } from '@/utils/upload';
 
 dayjs.extend(duration);
 dayjs.extend(relativeTime);
@@ -222,11 +223,12 @@ const submitMilestone = async () => {
   if (!canSubmitMilestone.value || milestoneSubmitting.value) return;
   milestoneSubmitting.value = true;
   try {
-    let imageData = newMilestone.imagePreview;
-    if (!imageData && newMilestone.imageFile) {
-      imageData = await readFileAsDataUrl(newMilestone.imageFile);
+    let imageUrl: string | undefined;
+    if (newMilestone.imageFile) {
+      const result = await uploadImage(newMilestone.imageFile);
+      imageUrl = result.url;
     }
-    await store.addMilestone(newMilestone.label, newMilestone.date, imageData || undefined);
+    await store.addMilestone(newMilestone.label, newMilestone.date, imageUrl);
     closeMilestoneDialog();
   } finally {
     milestoneSubmitting.value = false;

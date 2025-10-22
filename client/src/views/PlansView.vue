@@ -44,6 +44,9 @@
     <section class="glass-panel bucket-shell">
       <div class="bucket-header">
         <h3 class="section-title">{{ bucketTitle }}</h3>
+        <button type="button" class="add-bucket-button" @click="openBucketCreateDialog">
+          添加待打卡事项
+        </button>
       </div>
       <div class="bucket-progress">
         <div class="progress-bar">
@@ -58,14 +61,6 @@
           :key="item._id ?? item.order"
           :class="{ completed: item.completed }"
         >
-          <button
-            type="button"
-            class="bucket-toggle"
-            :aria-pressed="item.completed"
-            @click="handleBucketToggle(item)"
-          >
-            <span class="sr-only">切换打卡状态</span>
-          </button>
           <div class="bucket-content">
             <span class="order">#{{ item.order.toString().padStart(2, '0') }}</span>
             <div class="bucket-text">
@@ -74,6 +69,24 @@
                 完成于 {{ formatDisplayDate(item.completedOn) }}
               </span>
             </div>
+          </div>
+          <div class="bucket-actions">
+            <button
+              v-if="!item.completed"
+              type="button"
+              class="mark-complete"
+              @click="openBucketCompletionDialog(item)"
+            >
+              记录完成
+            </button>
+            <button
+              v-else
+              type="button"
+              class="ghost"
+              @click="markBucketIncomplete(item)"
+            >
+              标记为未完成
+            </button>
           </div>
           <div v-if="item.completed && item.photoUrl" class="bucket-thumbnail">
             <img :src="item.photoUrl" :alt="item.title" />
@@ -119,8 +132,12 @@
       </form>
     </div>
   </div>
-    <div v-if="showBucketDialog" class="plan-dialog-overlay" @click.self="closeBucketDialog">
-      <form class="plan-dialog bucket-dialog" @submit.prevent="submitBucketDialog">
+    <div
+      v-if="showBucketDialog"
+      class="plan-dialog-overlay"
+      @click.self="closeBucketCompletionDialog"
+    >
+      <form class="plan-dialog bucket-dialog" @submit.prevent="submitBucketCompletion">
         <h3>记录打卡完成</h3>
         <p class="bucket-dialog-hint">为这一刻选一个日期，也可以附上一张小小的照片。</p>
         <label>
@@ -132,8 +149,35 @@
           <input v-model="bucketDialog.photoUrl" type="url" placeholder="https://..." />
         </label>
         <div class="dialog-footer">
-          <button type="button" class="ghost" @click="closeBucketDialog">取消</button>
+          <button type="button" class="ghost" @click="closeBucketCompletionDialog">取消</button>
           <button type="submit" :disabled="bucketSubmitting">{{ bucketSubmitting ? '保存中...' : '保存' }}</button>
+        </div>
+      </form>
+    </div>
+    <div
+      v-if="showBucketCreateDialog"
+      class="plan-dialog-overlay"
+      @click.self="closeBucketCreateDialog"
+    >
+      <form class="plan-dialog bucket-dialog" @submit.prevent="submitBucketCreate">
+        <h3>添加待打卡事项</h3>
+        <label>
+          事项名称
+          <input
+            v-model="bucketCreateTitle"
+            type="text"
+            placeholder="我们想完成的事情..."
+            required
+          />
+        </label>
+        <div class="dialog-footer">
+          <button type="button" class="ghost" @click="closeBucketCreateDialog">取消</button>
+          <button
+            type="submit"
+            :disabled="!canSubmitBucketCreate || bucketCreateSubmitting"
+          >
+            {{ bucketCreateSubmitting ? '保存中...' : '保存' }}
+          </button>
         </div>
       </form>
     </div>
@@ -158,12 +202,15 @@ const createEmptyPlan = () => ({
 const newPlan = ref(createEmptyPlan());
 const showPlanDialog = ref(false);
 const showBucketDialog = ref(false);
+const showBucketCreateDialog = ref(false);
 const bucketSubmitting = ref(false);
+const bucketCreateSubmitting = ref(false);
 const bucketDialog = reactive({
   item: null as BucketItem | null,
   completedOn: dayjs().format('YYYY-MM-DD'),
   photoUrl: ''
 });
+const bucketCreateTitle = ref('');
 
 const weekdays = ['日', '一', '二', '三', '四', '五', '六'];
 
@@ -267,6 +314,7 @@ const bucketProgress = computed(() =>
 const bucketTitle = computed(() =>
   bucketTotal.value ? `${bucketTotal.value} 件心动打卡` : '心动打卡清单'
 );
+const canSubmitBucketCreate = computed(() => Boolean(bucketCreateTitle.value.trim()));
 
 const canSubmitPlan = computed(() => Boolean(newPlan.value.title.trim()));
 
@@ -309,31 +357,32 @@ const submitPlan = async () => {
 
 const formatDisplayDate = (value: string) => dayjs(value).format('YYYY 年 M 月 D 日');
 
-const closeBucketDialog = () => {
+const closeBucketCompletionDialog = () => {
   showBucketDialog.value = false;
   bucketDialog.item = null;
   bucketDialog.completedOn = dayjs().format('YYYY-MM-DD');
   bucketDialog.photoUrl = '';
 };
 
-const handleBucketToggle = async (item: BucketItem) => {
+const openBucketCompletionDialog = (item: BucketItem) => {
   if (bucketSubmitting.value) return;
-  if (item.completed) {
-    bucketSubmitting.value = true;
-    try {
-      await store.updateBucketItem(item, { completed: false });
-    } finally {
-      bucketSubmitting.value = false;
-    }
-    return;
-  }
   bucketDialog.item = item;
   bucketDialog.completedOn = dayjs().format('YYYY-MM-DD');
   bucketDialog.photoUrl = item.photoUrl ?? '';
   showBucketDialog.value = true;
 };
 
-const submitBucketDialog = async () => {
+const markBucketIncomplete = async (item: BucketItem) => {
+  if (bucketSubmitting.value) return;
+  bucketSubmitting.value = true;
+  try {
+    await store.updateBucketItem(item, { completed: false });
+  } finally {
+    bucketSubmitting.value = false;
+  }
+};
+
+const submitBucketCompletion = async () => {
   if (!bucketDialog.item || bucketSubmitting.value) return;
   const date = bucketDialog.completedOn;
   if (!date) return;
@@ -344,9 +393,30 @@ const submitBucketDialog = async () => {
       completedOn: date,
       photoUrl: bucketDialog.photoUrl.trim() || undefined
     });
-    closeBucketDialog();
+    closeBucketCompletionDialog();
   } finally {
     bucketSubmitting.value = false;
+  }
+};
+
+const openBucketCreateDialog = () => {
+  bucketCreateTitle.value = '';
+  showBucketCreateDialog.value = true;
+};
+
+const closeBucketCreateDialog = () => {
+  showBucketCreateDialog.value = false;
+  bucketCreateTitle.value = '';
+};
+
+const submitBucketCreate = async () => {
+  if (!canSubmitBucketCreate.value || bucketCreateSubmitting.value) return;
+  bucketCreateSubmitting.value = true;
+  try {
+    await store.addBucketItem(bucketCreateTitle.value);
+    closeBucketCreateDialog();
+  } finally {
+    bucketCreateSubmitting.value = false;
   }
 };
 </script>
@@ -477,6 +547,24 @@ const submitBucketDialog = async () => {
   display: flex;
   align-items: center;
   gap: 1rem;
+  justify-content: space-between;
+}
+
+.add-bucket-button {
+  border-radius: 999px;
+  padding: 0.4rem 1.1rem;
+  font-weight: 600;
+  border: none;
+  cursor: pointer;
+  background: var(--calendar-plan-upcoming);
+  color: #0f172a;
+  box-shadow: var(--shadow-card);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.add-bucket-button:active {
+  transform: scale(0.97);
+  box-shadow: none;
 }
 
 .bucket-progress {
@@ -511,7 +599,7 @@ const submitBucketDialog = async () => {
 
 .bucket-list li {
   display: grid;
-  grid-template-columns: auto 1fr auto;
+  grid-template-columns: 1fr auto auto;
   gap: 0.75rem;
   padding: 0.8rem 1rem;
   border-radius: 16px;
@@ -521,46 +609,6 @@ const submitBucketDialog = async () => {
 
 .bucket-list li.completed {
   background: var(--bucket-card-completed);
-}
-
-.bucket-toggle {
-  width: 32px;
-  height: 32px;
-  border-radius: 50%;
-  border: 2px solid var(--dialog-ghost-border);
-  background: transparent;
-  display: grid;
-  place-items: center;
-  cursor: pointer;
-  position: relative;
-}
-
-.bucket-toggle::before {
-  content: '';
-  font-size: 1rem;
-  color: var(--text-primary);
-}
-
-.bucket-toggle::after {
-  content: '';
-  width: 16px;
-  height: 16px;
-  border-radius: 50%;
-  background: transparent;
-  transition: background 0.2s ease;
-}
-
-.bucket-list li.completed .bucket-toggle {
-  background: var(--calendar-plan-completed);
-  border-color: transparent;
-}
-
-.bucket-list li.completed .bucket-toggle::before {
-  content: '✓';
-}
-
-.bucket-list li.completed .bucket-toggle::after {
-  background: rgba(15, 23, 42, 0.6);
 }
 
 .bucket-content {
@@ -589,6 +637,32 @@ const submitBucketDialog = async () => {
   color: var(--text-secondary);
 }
 
+.bucket-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.bucket-actions .ghost,
+.bucket-actions .mark-complete {
+  border-radius: 999px;
+  padding: 0.35rem 0.9rem;
+  font-weight: 600;
+  border: 1px solid transparent;
+  background: var(--interactive-muted);
+  color: var(--text-primary);
+}
+
+.bucket-actions .mark-complete {
+  background: var(--calendar-plan-upcoming);
+  color: #0f172a;
+}
+
+.bucket-actions .ghost {
+  background: transparent;
+  border-color: var(--dialog-ghost-border);
+}
+
 .bucket-thumbnail {
   width: 56px;
   height: 56px;
@@ -601,18 +675,6 @@ const submitBucketDialog = async () => {
   width: 100%;
   height: 100%;
   object-fit: cover;
-}
-
-.sr-only {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  padding: 0;
-  margin: -1px;
-  overflow: hidden;
-  clip: rect(0, 0, 0, 0);
-  white-space: nowrap;
-  border: 0;
 }
 
 .plan-dialog-overlay {

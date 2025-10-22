@@ -178,6 +178,22 @@ export const useHeartbeatStore = defineStore('heartbeat', {
     messagesLoading: false
   }),
   actions: {
+    async fetchAll() {
+      const authStore = useAuthStore();
+      if (!authStore.isAuthenticated) {
+        this.reset();
+        return;
+      }
+
+      await Promise.allSettled([
+        this.fetchRelationshipSummary(true),
+        this.fetchMilestones(this.milestoneMeta.page, this.milestoneMeta.pageSize),
+        this.fetchMemories(),
+        this.fetchPlans(),
+        this.fetchBucket(),
+        this.fetchMessages(this.messageMeta.page, this.messageMeta.pageSize)
+      ]);
+    },
     async fetchRelationshipSummary(force = false) {
       const authStore = useAuthStore();
       if (!authStore.isAuthenticated) {
@@ -284,10 +300,12 @@ export const useHeartbeatStore = defineStore('heartbeat', {
       const normalizedDate = new Date(date);
       if (Number.isNaN(normalizedDate.getTime())) return;
 
+      const normalizedImageUrl = imageUrl?.trim();
+
       const payload: Milestone = {
         label: trimmedLabel,
         date: normalizedDate.toISOString(),
-        ...(imageUrl ? { imageUrl } : {})
+        ...(normalizedImageUrl ? { imageUrl: normalizedImageUrl } : {})
       };
 
       try {
@@ -323,9 +341,11 @@ export const useHeartbeatStore = defineStore('heartbeat', {
 
       const { location, happenedOn, photoUrl, ...rest } = memory;
 
+      const normalizedPhotoUrl = photoUrl?.trim();
+
       const normalizedMemory: Omit<Memory, '_id'> = {
         ...rest,
-        ...(photoUrl ? { photoUrl } : {}),
+        ...(normalizedPhotoUrl ? { photoUrl: normalizedPhotoUrl } : {}),
         happenedOn: new Date(happenedOn).toISOString(),
         location: {
           ...location,
@@ -431,6 +451,36 @@ export const useHeartbeatStore = defineStore('heartbeat', {
       } catch (error) {
         console.error('Failed to update bucket item', error);
         this.bucket.splice(index, 1, previous);
+      }
+    },
+    async addBucketItem(title: string) {
+      const trimmedTitle = title.trim();
+      if (!trimmedTitle) return;
+
+      const nextOrder = this.bucket.length
+        ? Math.max(...this.bucket.map((item) => item.order)) + 1
+        : 1;
+      const applyItem = (item: BucketItem) => {
+        const resolvedOrder = item.order ?? nextOrder;
+        const normalized: BucketItem = {
+          ...item,
+          order: resolvedOrder,
+          completed: item.completed ?? false
+        };
+        this.bucket = [
+          ...this.bucket.filter(
+            (existing) => (existing._id ?? existing.order) !== (normalized._id ?? normalized.order)
+          ),
+          normalized
+        ].sort((a, b) => a.order - b.order);
+      };
+
+      try {
+        const response = await axios.post<BucketItem>('/api/bucket', { title: trimmedTitle });
+        applyItem(response.data);
+      } catch (error) {
+        console.error('Failed to create bucket item', error);
+        applyItem({ title: trimmedTitle, order: nextOrder, completed: false });
       }
     },
     async fetchBucket() {
