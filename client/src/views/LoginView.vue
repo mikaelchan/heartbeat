@@ -39,9 +39,11 @@ const handleSubmit = async () => {
   if (!username.value || !password.value) return;
   try {
     await auth.login(username.value, password.value);
-    await heartbeat.fetchAll();
     const redirect = (route.query.redirect as string) || '/';
     router.replace(redirect);
+    heartbeat.fetchAll().catch((error) => {
+      console.error('Failed to prefetch data after login', error);
+    });
   } catch (error) {
     console.error(error);
   }

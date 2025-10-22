@@ -41,22 +41,6 @@
           <input v-model="newMemory.happenedOn" type="date" required />
         </label>
         <label>
-          上传照片（可选）
-          <input ref="memoryFileInput" type="file" accept="image/*" @change="onMemoryFileChange" />
-        </label>
-        <label>
-          或使用图片链接（可选）
-          <input v-model="newMemory.photoUrl" type="url" placeholder="https://..." />
-        </label>
-        <div v-if="newMemory.photoPreview" class="memory-image-preview">
-          <img :src="newMemory.photoPreview" alt="照片预览" />
-          <button type="button" class="remove-image" @click="removeMemoryImage">移除图片</button>
-        </div>
-        <label>
-          回忆描述
-          <textarea v-model="newMemory.description" rows="3" placeholder="记录下那份心动..."></textarea>
-        </label>
-        <label>
           地点
           <div class="location-search">
             <input
@@ -83,6 +67,22 @@
           <p>已选择：<strong>{{ selectedPlace.name }}</strong></p>
           <button type="button" class="ghost" @click="clearSelectedPlace">重新选择</button>
         </div>
+        <label>
+          上传照片（可选）
+          <input ref="memoryFileInput" type="file" accept="image/*" @change="onMemoryFileChange" />
+        </label>
+        <label>
+          或使用图片链接（可选）
+          <input v-model="newMemory.photoUrl" type="url" placeholder="https://..." />
+        </label>
+        <div v-if="newMemory.photoPreview" class="memory-image-preview">
+          <img :src="newMemory.photoPreview" alt="照片预览" />
+          <button type="button" class="remove-image" @click="removeMemoryImage">移除图片</button>
+        </div>
+        <label>
+          回忆描述
+          <textarea v-model="newMemory.description" rows="3" placeholder="记录下那份心动..."></textarea>
+        </label>
         <div class="dialog-actions">
           <button type="button" class="ghost" @click="closeMemoryDialog">取消</button>
           <button type="submit" :disabled="!canSubmitMemory || memorySubmitting">
@@ -100,6 +100,7 @@ import * as L from 'leaflet';
 import dayjs from 'dayjs';
 import { useHeartbeatStore } from '@/stores/heartbeat';
 import { readFileAsDataUrl } from '@/utils/file';
+import { uploadImage } from '@/utils/upload';
 
 import 'leaflet/dist/leaflet.css';
 
@@ -302,8 +303,9 @@ const submitMemory = async () => {
     const place = selectedPlace.value;
     if (!place) return;
     let photoUrl = newMemory.photoUrl.trim();
-    if (!photoUrl && newMemory.photoPreview) {
-      photoUrl = newMemory.photoPreview;
+    if (!photoUrl && newMemory.photoFile) {
+      const result = await uploadImage(newMemory.photoFile);
+      photoUrl = result.url;
     }
 
     await store.addMemory({

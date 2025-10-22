@@ -1,7 +1,7 @@
 export interface Relationship {
   coupleNames: string[];
   startedOn: Date;
-  milestones: { label: string; date: Date }[];
+  milestones: { label: string; date: Date; imageUrl?: string }[];
 }
 
 export interface Memory {

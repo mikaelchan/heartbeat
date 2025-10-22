@@ -6,11 +6,13 @@ import type { AuthenticatedRequest } from '../middleware/auth.middleware.js';
 interface MilestoneInput {
   label?: string;
   date?: string | Date;
+  imageUrl?: unknown;
 }
 
 interface Milestone {
   label: string;
   date: string;
+  imageUrl?: string;
 }
 
 const mapRelationship = ({
@@ -26,21 +28,13 @@ const mapRelationship = ({
   return {
     ...rest,
     coupleNames: Array.isArray(coupleNames) ? (coupleNames as unknown as string[]) : [],
-    milestones: Array.isArray(milestones) ? (milestones as unknown as Milestone[]) : [],
+    milestones: sanitizeMilestones(milestones),
     _id: id
   };
 };
 
-const extractMilestones = (relationship: RelationshipModel): Milestone[] => {
-  if (!Array.isArray(relationship.milestones)) {
-    return [];
-  }
-
-  return (relationship.milestones as unknown as Milestone[]).map((milestone) => ({
-    label: milestone.label,
-    date: new Date(milestone.date).toISOString()
-  }));
-};
+const extractMilestones = (relationship: RelationshipModel): Milestone[] =>
+  sanitizeMilestones(relationship.milestones);
 
 const parsePositiveInteger = (value: unknown, fallback: number) => {
   const parsed = Number.parseInt(String(value ?? ''), 10);
@@ -57,7 +51,7 @@ const sanitizeMilestones = (milestones?: unknown): Milestone[] => {
 
   return milestones
     .map((milestone) => {
-      const { label, date } = milestone as MilestoneInput;
+      const { label, date, imageUrl } = milestone as MilestoneInput;
       if (!label || !date) {
         return null;
       }
@@ -65,7 +59,14 @@ const sanitizeMilestones = (milestones?: unknown): Milestone[] => {
       if (Number.isNaN(parsedDate.getTime())) {
         return null;
       }
-      return { label, date: parsedDate.toISOString() };
+      const normalized: Milestone = {
+        label,
+        date: parsedDate.toISOString()
+      };
+      if (typeof imageUrl === 'string' && imageUrl.trim()) {
+        normalized.imageUrl = imageUrl.trim();
+      }
+      return normalized;
     })
     .filter((value): value is Milestone => value !== null);
 };
@@ -155,7 +156,7 @@ export const addRelationshipMilestone = async (req: Request, res: Response) => {
     return res.status(401).json({ message: '未授权。' });
   }
 
-  const { label, date } = req.body as MilestoneInput;
+  const { label, date, imageUrl } = req.body as MilestoneInput;
   if (!label || !date) {
     return res.status(400).json({ message: '请填写完整的纪念信息。' });
   }
@@ -164,6 +165,8 @@ export const addRelationshipMilestone = async (req: Request, res: Response) => {
   if (Number.isNaN(parsedDate.getTime())) {
     return res.status(400).json({ message: '请输入有效的时间。' });
   }
+
+  const normalizedImageUrl = typeof imageUrl === 'string' ? imageUrl.trim() : undefined;
 
   const relationship = await prisma.relationship.findFirst({
     where: {
@@ -176,7 +179,11 @@ export const addRelationshipMilestone = async (req: Request, res: Response) => {
   }
 
   const milestones = extractMilestones(relationship);
-  const newMilestone: Milestone = { label, date: parsedDate.toISOString() };
+  const newMilestone: Milestone = {
+    label,
+    date: parsedDate.toISOString(),
+    ...(normalizedImageUrl ? { imageUrl: normalizedImageUrl } : {})
+  };
   const updatedMilestones = [...milestones, newMilestone].sort(
     (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
   );
