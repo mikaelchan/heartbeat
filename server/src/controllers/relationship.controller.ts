@@ -149,6 +149,50 @@ export const listRelationshipMilestones = async (req: Request, res: Response) =>
   });
 };
 
+export const addRelationshipMilestone = async (req: Request, res: Response) => {
+  const { user } = req as AuthenticatedRequest;
+  if (!user) {
+    return res.status(401).json({ message: '未授权。' });
+  }
+
+  const { label, date } = req.body as MilestoneInput;
+  if (!label || !date) {
+    return res.status(400).json({ message: '请填写完整的纪念信息。' });
+  }
+
+  const parsedDate = new Date(date);
+  if (Number.isNaN(parsedDate.getTime())) {
+    return res.status(400).json({ message: '请输入有效的时间。' });
+  }
+
+  const relationship = await prisma.relationship.findFirst({
+    where: {
+      OR: [{ userOneId: user.id }, { userTwoId: user.id }]
+    }
+  });
+
+  if (!relationship) {
+    return res.status(404).json({ message: 'Relationship not configured yet.' });
+  }
+
+  const milestones = extractMilestones(relationship);
+  const newMilestone: Milestone = { label, date: parsedDate.toISOString() };
+  const updatedMilestones = [...milestones, newMilestone].sort(
+    (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
+  );
+
+  try {
+    await prisma.relationship.update({
+      where: { id: relationship.id },
+      data: { milestones: updatedMilestones as unknown as Prisma.InputJsonValue }
+    });
+    return res.status(201).json(newMilestone);
+  } catch (error) {
+    console.error('Failed to create milestone', error);
+    return res.status(500).json({ message: '创建纪念时出错，请稍后再试。' });
+  }
+};
+
 export const upsertRelationship = async (req: Request, res: Response) => {
   const { user } = req as AuthenticatedRequest;
   if (!user) {

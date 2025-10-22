@@ -18,18 +18,21 @@
     <div class="timeline">
       <div class="rail"></div>
       <div v-if="isLoading && !messages.length" class="timeline-loading">正在加载留言...</div>
-      <div
-        v-for="message in messages"
-        :key="message._id ?? message.createdAt"
-        class="timeline-item"
-        :data-author="message.author"
-      >
-        <div class="bubble">
-          <span class="author">{{ displayAuthor(message.author) }}</span>
-          <p class="text">{{ message.content }}</p>
-          <span class="time">{{ formatTime(message.createdAt) }}</span>
+      <TransitionGroup name="fade-up" tag="div" class="timeline-items">
+        <div
+          v-for="message in messages"
+          :key="message._id ?? message.createdAt"
+          class="timeline-item"
+          :data-author="message.author"
+        >
+          <span class="timeline-dot"></span>
+          <div class="bubble">
+            <span class="author">{{ displayAuthor(message.author) }}</span>
+            <p class="text">{{ message.content }}</p>
+            <span class="time">{{ formatTime(message.createdAt) }}</span>
+          </div>
         </div>
-      </div>
+      </TransitionGroup>
     </div>
     <div v-if="canLoadMore" class="load-more">
       <button type="button" @click="loadMore" :disabled="isLoading">加载更多故事</button>
@@ -120,6 +123,7 @@ const loadMore = async () => {
   display: flex;
   flex-direction: column;
   gap: 1.8rem;
+  padding: 0.5rem 0;
 }
 
 .rail {
@@ -137,14 +141,39 @@ const loadMore = async () => {
   color: var(--text-secondary);
 }
 
+.timeline-items {
+  display: flex;
+  flex-direction: column;
+  gap: 1.8rem;
+}
+
 .timeline-item {
+  position: relative;
   display: flex;
   justify-content: flex-start;
-  position: relative;
+  width: 100%;
 }
 
 .timeline-item[data-author='partner'] {
   justify-content: flex-end;
+}
+
+.timeline-dot {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--timeline-dot, linear-gradient(135deg, #ff7096, #ff9671));
+  box-shadow: 0 0 0 4px rgba(255, 112, 150, 0.2);
+  position: absolute;
+  left: 50%;
+  top: 1.3rem;
+  transform: translate(-50%, -50%);
+  z-index: 1;
+}
+
+.timeline-item[data-author='partner'] .timeline-dot {
+  background: var(--timeline-dot-partner, linear-gradient(135deg, #84fab0, #8fd3f4));
+  box-shadow: 0 0 0 4px rgba(132, 250, 176, 0.2);
 }
 
 .bubble {
@@ -153,9 +182,16 @@ const loadMore = async () => {
   border-radius: 20px;
   background: var(--timeline-bubble);
   box-shadow: var(--timeline-shadow);
+  position: relative;
+  overflow: hidden;
+}
+
+.timeline-item[data-author='me'] .bubble {
+  margin-right: auto;
 }
 
 .timeline-item[data-author='partner'] .bubble {
+  margin-left: auto;
   background: var(--timeline-bubble-partner);
 }
 
@@ -173,6 +209,17 @@ const loadMore = async () => {
 .time {
   opacity: 0.7;
   font-size: 0.85rem;
+}
+
+.fade-up-enter-active,
+.fade-up-leave-active {
+  transition: all 0.25s ease;
+}
+
+.fade-up-enter-from,
+.fade-up-leave-to {
+  opacity: 0;
+  transform: translateY(12px);
 }
 
 .load-more {
@@ -200,6 +247,13 @@ const loadMore = async () => {
   .timeline-item[data-author='partner'] {
     justify-content: flex-start;
     padding-left: 32px;
+  }
+
+  .timeline-dot {
+    position: absolute;
+    left: 16px;
+    top: 1.3rem;
+    transform: translate(-50%, -50%);
   }
 }
 </style>

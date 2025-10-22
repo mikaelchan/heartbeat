@@ -232,6 +232,83 @@ export const useHeartbeatStore = defineStore('heartbeat', {
         this.plansLoading = false;
       }
     },
+    async addMilestone(label: string, date: string) {
+      const trimmedLabel = label.trim();
+      if (!trimmedLabel || !date) return;
+      const normalizedDate = new Date(date);
+      if (Number.isNaN(normalizedDate.getTime())) return;
+
+      const payload = { label: trimmedLabel, date: normalizedDate.toISOString() };
+
+      try {
+        const response = await axios.post<Milestone>('/api/relationship/milestones', payload);
+        this.milestones = [response.data, ...this.milestones];
+      } catch (error) {
+        console.error('Failed to create milestone', error);
+        this.milestones = [payload, ...this.milestones];
+      } finally {
+        this.milestones = this.milestones
+          .slice()
+          .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+        if (this.milestones.length > this.milestoneMeta.pageSize) {
+          this.milestones = this.milestones.slice(0, this.milestoneMeta.pageSize);
+        }
+        this.milestoneMeta.totalItems += 1;
+        this.milestoneMeta.totalPages = Math.max(
+          1,
+          Math.ceil(this.milestoneMeta.totalItems / this.milestoneMeta.pageSize)
+        );
+        this.milestoneMeta.page = 1;
+        if (this.relationshipSummary) {
+          this.relationshipSummary.milestoneCount += 1;
+        }
+      }
+    },
+    async addMemory(memory: Omit<Memory, '_id'>) {
+      const lat = Number(memory.location.lat);
+      const lng = Number(memory.location.lng);
+      if (Number.isNaN(lat) || Number.isNaN(lng)) {
+        return;
+      }
+
+      const normalizedMemory: Omit<Memory, '_id'> = {
+        ...memory,
+        happenedOn: new Date(memory.happenedOn).toISOString(),
+        location: {
+          ...memory.location,
+          lat,
+          lng
+        }
+      };
+
+      try {
+        const response = await axios.post<Memory>('/api/memories', normalizedMemory);
+        this.memories = [response.data, ...this.memories];
+      } catch (error) {
+        console.error('Failed to create memory', error);
+        this.memories = [normalizedMemory, ...this.memories];
+      }
+    },
+    async addPlan(plan: Omit<Plan, '_id'>) {
+      const normalizedPlan: Omit<Plan, '_id'> = {
+        ...plan,
+        scheduledOn: new Date(plan.scheduledOn).toISOString(),
+        attachments: plan.attachments?.filter((item) => item.trim()) ?? [],
+        status: plan.status
+      };
+
+      try {
+        const response = await axios.post<Plan>('/api/plans', normalizedPlan);
+        this.plans = [...this.plans, response.data].sort(
+          (a, b) => new Date(a.scheduledOn).getTime() - new Date(b.scheduledOn).getTime()
+        );
+      } catch (error) {
+        console.error('Failed to create plan', error);
+        this.plans = [...this.plans, normalizedPlan].sort(
+          (a, b) => new Date(a.scheduledOn).getTime() - new Date(b.scheduledOn).getTime()
+        );
+      }
+    },
     async fetchBucket() {
       const authStore = useAuthStore();
       if (!authStore.isAuthenticated || this.bucketLoading) {
