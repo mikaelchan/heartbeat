@@ -65,6 +65,15 @@
           :class="{ completed: item.completed, 'has-photo': item.completed && item.photoUrl }"
           :style="bucketCardStyle(item)"
         >
+          <div class="bucket-content">
+            <span class="order">#{{ item.order.toString().padStart(2, '0') }}</span>
+            <div class="bucket-text">
+              <span class="title">{{ item.title }}</span>
+              <span v-if="item.completed && item.completedOn" class="completed-date">
+                完成于 {{ formatDisplayDate(item.completedOn) }}
+              </span>
+            </div>
+          </div>
           <button
             v-if="!item.completed"
             type="button"
@@ -77,15 +86,6 @@
               <path d="M8.5 12.5l2.3 2.3 4.7-5.3" />
             </svg>
           </button>
-          <div class="bucket-content">
-            <span class="order">#{{ item.order.toString().padStart(2, '0') }}</span>
-            <div class="bucket-text">
-              <span class="title">{{ item.title }}</span>
-              <span v-if="item.completed && item.completedOn" class="completed-date">
-                完成于 {{ formatDisplayDate(item.completedOn) }}
-              </span>
-            </div>
-          </div>
         </li>
       </ul>
     </section>
@@ -698,13 +698,13 @@ const calendarCellClasses = (cell: CalendarCell) => ({
 }
 
 .add-bucket-button {
+  padding: 0.55rem 1.1rem;
   border-radius: 999px;
-  padding: 0.4rem 1.1rem;
-  font-weight: 600;
   border: none;
+  font-weight: 600;
+  background: var(--accent);
+  color: #fff;
   cursor: pointer;
-  background: var(--calendar-plan-upcoming);
-  color: #0f172a;
   box-shadow: var(--shadow-card);
   transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
@@ -769,7 +769,6 @@ const calendarCellClasses = (cell: CalendarCell) => ({
 }
 
 .bucket-list li > * {
-  position: relative;
   z-index: 1;
 }
 
@@ -836,17 +835,17 @@ const calendarCellClasses = (cell: CalendarCell) => ({
 }
 
 .bucket-status-badge.icon-only {
-  width: 44px;
-  height: 44px;
+  width: 22px;
+  height: 22px;
 }
 
 .bucket-status-badge.icon-only svg {
-  width: 40px;
-  height: 40px;
+  width: 20px;
+  height: 20px;
 }
 
 .bucket-status-badge.icon-only svg circle {
-  fill: #22c55e;
+  fill: #feea68;
 }
 
 .bucket-status-badge.icon-only svg path {
