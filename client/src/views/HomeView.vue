@@ -64,7 +64,7 @@
         <input v-model="newMilestone.date" type="date" required />
       </label>
       <label>
-        上传照片
+        上传照片（可选）
         <input
           ref="milestoneFileInput"
           type="file"
@@ -72,6 +72,7 @@
           @change="onMilestoneFileChange"
         />
       </label>
+      <p class="milestone-optional-hint">先记录下重要的文字，照片可以以后再补上。</p>
       <div v-if="newMilestone.imagePreview" class="milestone-image-preview">
         <img :src="newMilestone.imagePreview" alt="预览" />
         <button type="button" class="remove-image" @click="removeMilestoneImage">移除图片</button>
@@ -440,6 +441,12 @@ const submitMilestone = async () => {
   flex-direction: column;
   gap: 0.5rem;
   font-weight: 600;
+}
+
+.milestone-optional-hint {
+  margin: -0.25rem 0 0.25rem;
+  font-size: 0.85rem;
+  color: var(--text-secondary);
 }
 
 .milestone-dialog input[type='text'],
