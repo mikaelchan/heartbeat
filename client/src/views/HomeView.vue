@@ -63,20 +63,6 @@
         日期
         <input v-model="newMilestone.date" type="date" required />
       </label>
-      <label>
-        上传照片（可选）
-        <input
-          ref="milestoneFileInput"
-          type="file"
-          accept="image/*"
-          @change="onMilestoneFileChange"
-        />
-      </label>
-      <p class="milestone-optional-hint">先记录下重要的文字，照片可以以后再补上。</p>
-      <div v-if="newMilestone.imagePreview" class="milestone-image-preview">
-        <img :src="newMilestone.imagePreview" alt="预览" />
-        <button type="button" class="remove-image" @click="removeMilestoneImage">移除图片</button>
-      </div>
       <div class="dialog-actions">
         <button type="button" class="ghost" @click="closeMilestoneDialog">取消</button>
         <button type="submit" :disabled="!canSubmitMilestone || milestoneSubmitting">
@@ -94,8 +80,6 @@ import duration from 'dayjs/plugin/duration';
 import relativeTime from 'dayjs/plugin/relativeTime';
 import { useHeartbeatStore } from '@/stores/heartbeat';
 import { useAuthStore } from '@/stores/auth';
-import { readFileAsDataUrl } from '@/utils/file';
-import { uploadImage } from '@/utils/upload';
 
 dayjs.extend(duration);
 dayjs.extend(relativeTime);
@@ -129,11 +113,8 @@ const milestoneSubmitting = ref(false);
 const showMilestoneDialog = ref(false);
 const newMilestone = reactive({
   label: '',
-  date: '',
-  imageFile: null as File | null,
-  imagePreview: ''
+  date: ''
 });
-const milestoneFileInput = ref<HTMLInputElement | null>(null);
 
 const formattedStart = computed(() =>
   relationship.value ? dayjs(relationship.value.startedOn).format('YYYY 年 M 月 D 日') : ''
@@ -172,11 +153,6 @@ const formatDate = (value: string) => dayjs(value).format('YYYY 年 M 月 D 日'
 const resetMilestoneForm = () => {
   newMilestone.label = '';
   newMilestone.date = '';
-  newMilestone.imageFile = null;
-  newMilestone.imagePreview = '';
-  if (milestoneFileInput.value) {
-    milestoneFileInput.value.value = '';
-  }
 };
 
 const openMilestoneDialog = () => {
@@ -189,33 +165,6 @@ const closeMilestoneDialog = () => {
   resetMilestoneForm();
 };
 
-const onMilestoneFileChange = async (event: Event) => {
-  const input = event.target as HTMLInputElement;
-  const file = input.files?.[0];
-  if (!file) {
-    newMilestone.imageFile = null;
-    newMilestone.imagePreview = '';
-    return;
-  }
-
-  newMilestone.imageFile = file;
-  try {
-    newMilestone.imagePreview = await readFileAsDataUrl(file);
-  } catch (error) {
-    console.error('Failed to read milestone image', error);
-    newMilestone.imageFile = null;
-    newMilestone.imagePreview = '';
-  }
-};
-
-const removeMilestoneImage = () => {
-  newMilestone.imageFile = null;
-  newMilestone.imagePreview = '';
-  if (milestoneFileInput.value) {
-    milestoneFileInput.value.value = '';
-  }
-};
-
 const canSubmitMilestone = computed(
   () => Boolean(newMilestone.label.trim() && newMilestone.date)
 );
@@ -224,12 +173,7 @@ const submitMilestone = async () => {
   if (!canSubmitMilestone.value || milestoneSubmitting.value) return;
   milestoneSubmitting.value = true;
   try {
-    let imageUrl: string | undefined;
-    if (newMilestone.imageFile) {
-      const result = await uploadImage(newMilestone.imageFile);
-      imageUrl = result.url;
-    }
-    await store.addMilestone(newMilestone.label, newMilestone.date, imageUrl);
+    await store.addMilestone(newMilestone.label, newMilestone.date);
     closeMilestoneDialog();
   } finally {
     milestoneSubmitting.value = false;
@@ -443,51 +387,14 @@ const submitMilestone = async () => {
   font-weight: 600;
 }
 
-.milestone-optional-hint {
-  margin: -0.25rem 0 0.25rem;
-  font-size: 0.85rem;
-  color: var(--text-secondary);
-}
-
 .milestone-dialog input[type='text'],
-.milestone-dialog input[type='date'],
-.milestone-dialog input[type='file'] {
+.milestone-dialog input[type='date'] {
   border-radius: 12px;
   border: 1px solid var(--dialog-input-border);
   padding: 0.65rem 0.85rem;
   background: var(--dialog-input-background);
   color: inherit;
   font-family: inherit;
-}
-
-.milestone-dialog input[type='file'] {
-  padding: 0.45rem 0.85rem;
-}
-
-.milestone-image-preview {
-  position: relative;
-  border-radius: 18px;
-  overflow: hidden;
-  max-height: 220px;
-}
-
-.milestone-image-preview img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  display: block;
-}
-
-.remove-image {
-  position: absolute;
-  right: 0.75rem;
-  top: 0.75rem;
-  background: rgba(0, 0, 0, 0.55);
-  color: #fff;
-  border: none;
-  border-radius: 999px;
-  padding: 0.35rem 0.75rem;
-  cursor: pointer;
 }
 
 .dialog-actions {
