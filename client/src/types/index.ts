@@ -28,7 +28,7 @@ export interface Memory {
   _id?: string;
   title: string;
   description: string;
-  photoUrl: string;
+  photoUrl?: string;
   location: {
     lat: number;
     lng: number;

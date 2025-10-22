@@ -290,11 +290,14 @@ export const useHeartbeatStore = defineStore('heartbeat', {
         return;
       }
 
+      const { location, happenedOn, photoUrl, ...rest } = memory;
+
       const normalizedMemory: Omit<Memory, '_id'> = {
-        ...memory,
-        happenedOn: new Date(memory.happenedOn).toISOString(),
+        ...rest,
+        ...(photoUrl ? { photoUrl } : {}),
+        happenedOn: new Date(happenedOn).toISOString(),
         location: {
-          ...memory.location,
+          ...location,
           lat,
           lng
         }
