@@ -49,7 +49,7 @@ export const createMemory = async (req: Request, res: Response) => {
     happenedOn?: string | Date;
   };
 
-  if (!title || !description || !photoUrl || !location || !happenedOn) {
+  if (!title || !location || !happenedOn || !photoUrl) {
     return res.status(400).json({ message: '请完整填写回忆信息。' });
   }
 

@@ -101,6 +101,14 @@ const loadMore = async () => {
 }
 
 .message-form button {
+  padding: 0.55rem 1.1rem;
+  border-radius: 999px;
+  border: none;
+  font-weight: 600;
+  background: var(--accent);
+  color: #fff;
+  box-shadow: var(--shadow-card);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
   align-self: flex-end;
 }
 

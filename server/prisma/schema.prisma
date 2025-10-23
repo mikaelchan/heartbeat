@@ -47,7 +47,7 @@ model Memory {
   id             String   @id @default(cuid())
   relationshipId String
   title          String
-  description    String
+  description    String   @default("")
   photoUrl       String
   location       Json
   happenedOn     DateTime

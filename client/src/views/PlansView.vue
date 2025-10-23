@@ -270,7 +270,7 @@ const calendarEntries = computed<CalendarEntry[]>(() => {
         date
       };
     })
-    .filter((entry): entry is CalendarEntry => Boolean(entry));
+    .filter(Boolean) as unknown as CalendarEntry[];
 
   const bucket = store.bucket
     .filter((item) => item.completed && item.completedOn)
@@ -286,7 +286,7 @@ const calendarEntries = computed<CalendarEntry[]>(() => {
         date
       };
     })
-    .filter((entry): entry is CalendarEntry => Boolean(entry));
+    .filter(Boolean) as unknown as CalendarEntry[];
 
   return [...plans, ...bucket];
 });

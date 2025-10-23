@@ -68,7 +68,7 @@
           <button type="button" class="ghost" @click="clearSelectedPlace">重新选择</button>
         </div>
         <label>
-          上传照片（可选）
+          上传照片
           <input ref="memoryFileInput" type="file" accept="image/*" @change="onMemoryFileChange" />
         </label>
         <label>
@@ -80,7 +80,7 @@
           <button type="button" class="remove-image" @click="removeMemoryImage">移除图片</button>
         </div>
         <label>
-          回忆描述
+          回忆描述（可选）
           <textarea v-model="newMemory.description" rows="3" placeholder="记录下那份心动..."></textarea>
         </label>
         <div class="dialog-actions">
@@ -594,7 +594,6 @@ const submitMemory = async () => {
   border-radius: 16px;
   background: rgba(255, 255, 255, 0.06);
   max-height: 220px;
-  overflow-y: auto;
 }
 
 .location-results li + li {

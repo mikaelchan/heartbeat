@@ -218,7 +218,7 @@ export const useHeartbeatStore = defineStore('heartbeat', {
         };
       }
     },
-    async fetchMilestones(page = 1, pageSize = this.milestoneMeta.pageSize) {
+    async fetchMilestones(page = 1, pageSize = 5) {
       const authStore = useAuthStore();
       if (!authStore.isAuthenticated || this.milestoneLoading) {
         if (!authStore.isAuthenticated) {
@@ -504,7 +504,7 @@ export const useHeartbeatStore = defineStore('heartbeat', {
         this.bucketLoading = false;
       }
     },
-    async fetchMessages(page = 1, pageSize = this.messageMeta.pageSize, { append = false } = {}) {
+    async fetchMessages(page = 1, pageSize = 10, { append = false } = {}) {
       const authStore = useAuthStore();
       if (!authStore.isAuthenticated || this.messagesLoading) {
         if (!authStore.isAuthenticated) {
